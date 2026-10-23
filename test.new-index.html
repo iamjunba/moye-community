@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>볼 — 시볼급 말랑함 v14</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--panel:#131722;--panel2:#191f2d;--line:#272e3e;--text:#edf0f7;--muted:#929bb0;--accent:#8b7cff;--accent2:#b0a6ff;--danger:#ff657a;--good:#6ee7b7}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 20% -10%,#252044 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Noto Sans KR",sans-serif}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:9px 13px;background:var(--panel2);color:var(--text)}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:700}
+button.danger{color:var(--danger)}
+input,textarea,select{width:100%;background:#0d111a;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:110px}
+.wrap{max-width:1180px;margin:auto;padding:0 20px}
+.top{position:sticky;top:0;z-index:5;background:#0b0d12ef;backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.topin{min-height:72px;display:flex;align-items:center;gap:12px}
+.brand{font-size:23px;font-weight:900;letter-spacing:-1px;color:white}
+.brand span{color:var(--accent)}
+.top-notice{flex:1;min-width:0;max-width:620px;margin-left:12px;padding:9px 12px;border:1px solid #393456;background:#17152a;border-radius:10px;color:#ddd8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;text-align:left}
+.top-notice:hover{border-color:var(--accent)}
+.bottom-tools{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.bottom-search{max-width:none;width:100%}
+.pagination{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+.pagination .current{background:var(--accent);border-color:var(--accent)}
+.page-info{font-size:12px;color:var(--muted)}
+.userbox{display:flex;gap:8px;align-items:center}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr) 240px;gap:22px;padding-top:26px;padding-bottom:60px}
+.leftcol{position:sticky;top:90px;align-self:start;max-height:calc(100vh - 105px);overflow-y:auto;scrollbar-width:thin}
+#mainMenu{margin-top:8px}
+#mainMenu button{width:100%}
+.panel{background:linear-gradient(160deg,#171c29,#11151e);border:1px solid var(--line);border-radius:16px;padding:17px}
+.side-title{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px;margin:3px 8px 12px}
+.nav{display:flex;flex-direction:column;gap:5px}
+.nav button{text-align:left;background:transparent;border-color:transparent;color:var(--muted)}
+.nav button.active,.nav button:hover{background:#25233c;color:white;border-color:#38345d}
+.small{font-size:12px;color:var(--muted)}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 16px}
+.section-head h1{font-size:24px;letter-spacing:-.7px;margin:0}
+.feed{display:flex;flex-direction:column;gap:12px}
+.post{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:19px;transition:border .15s}
+.post:hover{border-color:#45405f}
+.meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;flex-wrap:wrap}
+.avatar{width:30px;height:30px;border-radius:10px;background:#302b50;color:#c8c0ff;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.tag{font-size:11px;border:1px solid #393456;background:#24213a;color:#c3baff;border-radius:6px;padding:3px 7px}
+.role-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:800;line-height:1.4;border-radius:5px;padding:2px 6px;border:1px solid #394154;background:#202633;color:#b9c3d5}
+.role-badge.moderator{border-color:#246a67;background:#12302f;color:#8ce4d6}
+.role-badge.admin{border-color:#6552a7;background:#2a2147;color:#d2c5ff}
+.post h2{font-size:18px;line-height:1.4;margin:13px 0 7px;letter-spacing:-.3px}
+.postbody{color:#c4cada;white-space:pre-wrap;overflow-wrap:anywhere}.postbody a,.comment a{color:#b0a6ff;text-decoration:underline;overflow-wrap:anywhere}.chat-messages{height:42vh;min-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px;margin:12px 0;background:#0d111a}.chat-message{padding:8px 0;border-bottom:1px solid var(--line)}
+.postimg{max-width:100%;max-height:420px;object-fit:contain;border-radius:12px;margin-top:12px;border:1px solid var(--line)}
+.actions{display:flex;gap:8px;align-items:center;margin-top:15px;flex-wrap:wrap}
+.actions button{font-size:12px;padding:6px 10px}
+.liked{color:#c3baff;border-color:var(--accent)}
+.empty{padding:45px 15px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:15px}
+.rightstack{display:flex;flex-direction:column;gap:14px}
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.stat:last-child{border:0}
+.modalback{position:fixed;inset:0;background:#000a;z-index:20;display:none;align-items:center;justify-content:center;padding:16px}
+.modalback.show{display:flex}
+.modal{width:min(650px,100%);max-height:90vh;overflow:auto;background:#121722;border:1px solid #333b50;border-radius:18px;padding:22px;box-shadow:0 25px 90px #0009}
+.modal h2{margin:0 0 16px}
+.field{margin:12px 0}
+.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.notice{padding:11px 13px;border-radius:10px;background:#1b2433;color:#bdc7db;font-size:13px;margin-bottom:14px}
+.comments{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}
+.comment{padding:10px 0 10px 12px;border-left:2px solid #34304f;margin-top:10px}
+.comment p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.commentchildren{margin-left:20px}
+.hidden{display:none!important}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#24283a;border:1px solid #4a4e65;border-radius:12px;padding:12px 18px;z-index:50;max-width:90vw}
+.footer{color:var(--muted);font-size:11px;margin-top:18px}
+.mobilecats{display:none}
+.activity-item{padding:13px;margin:10px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.activity-item h3{margin:0 0 5px;font-size:16px}
+.activity-item p{white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0}
+@media(max-width:950px){.layout{grid-template-columns:190px minmax(0,1fr)}.rightcol{display:none}}
+@media(max-width:650px){
+.wrap{padding:0 12px}
+.topin{height:auto;min-height:65px;flex-wrap:wrap;padding:10px 0;gap:8px}
+.brand{font-size:21px}
+.top-notice{order:3;max-width:none;flex-basis:100%;margin-left:0}
+.bottom-tools{margin-top:14px}
+.userbox{margin-left:auto;gap:5px}
+.userbox button{padding:7px 8px;font-size:12px}
+.layout{display:block;padding-top:15px;padding-bottom:95px}
+.leftcol{position:static;max-height:none;overflow:visible;margin-bottom:14px}
+.leftcol .panel{padding:10px}
+#categories,.leftcol>.panel>.side-title:first-child{display:none}
+#mainMenu{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:#10141ff5;border-top:1px solid var(--line);backdrop-filter:blur(14px);margin:0}
+#mainMenu button{min-width:0;text-align:center;white-space:normal;font-size:11px;line-height:1.25;padding:9px 2px;border-radius:8px}
+#mainMenu button.active{background:#25233c;color:white;border-color:#38345d}
+.side-title{display:none}
+.nav{flex-direction:row;overflow:auto}
+.nav button{white-space:nowrap;padding:8px 10px}
+.section-head h1{font-size:21px}
+.post{padding:15px}
+.post h2{font-size:17px}
+.mobilecats{display:block;margin-bottom:14px}
+.authlabel{display:none}
+}
+
+.copyright-footer{max-width:1180px;margin:0 auto;padding:22px 16px calc(22px + env(safe-area-inset-bottom));border-top:1px solid var(--line);color:var(--muted);font-size:11px;text-align:center;letter-spacing:.2px}
+.copyright-footer .creator-mark{display:block;margin-top:4px;color:#aaa2e8}
+@media(max-width:650px){.copyright-footer{padding-bottom:calc(86px + env(safe-area-inset-bottom))}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap topin">
+  <div class="brand">시볼<span>.</span></div>
+  <button id="topNotice" class="top-notice" type="button">📌 고정된 공지사항을 불러오는 중...</button>
+  <div class="userbox">
+    <span id="who" class="small authlabel">로그인하지 않음</span>
+    <button id="adminBtn" class="hidden">신고함</button>
+    <button id="authBtn" class="primary">로그인</button>
+  </div>
+</div></header>
+
+<div class="wrap layout">
+<aside class="leftcol"><div class="panel">
+  <div class="side-title">게시판</div>
+  <nav class="nav" id="categories">
+  <button class="active" data-cat="자유">☰ 자유게시판</button>
+  <button data-cat="공지">📌 공지사항</button>
+  </nav>
+  <div class="side-title" style="margin-top:20px">메뉴</div>
+  <nav class="nav" id="mainMenu">
+    <button id="menuBoards">▤ 게시판</button>
+    <button id="menuProfile">♙ 마이페이지</button>
+    <button id="menuChats">▣ 나의 채팅방</button>
+    <button id="menuFriends">♧ 친구</button>
+  </nav>
+  <div style="margin-top:18px"><button id="writeBtn" class="primary" style="width:100%">＋ 글쓰기</button></div>
+  <p class="footer">서로 존중하며 편하게 이야기해요.</p>
+</div></aside>
+
+<main>
+  <div class="mobilecats panel"><div class="nav" id="mobileCategories">
+  <button class="active" data-cat="자유">자유</button><button data-cat="공지">공지</button>
+  </div></div>
+  <div class="section-head"><h1 id="feedTitle">전체 글</h1><select id="sort" style="width:auto;max-width:145px"><option value="new">최신순</option><option value="hot">인기순</option></select></div>
+  <div id="feed" class="feed"><div class="empty">커뮤니티에 연결하는 중...</div></div>
+  <div class="bottom-tools"><div id="pagination" class="pagination"></div><input id="search" class="bottom-search" type="search" name="community-search-query" role="searchbox" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="search" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" readonly placeholder="게시글 검색..." aria-label="게시글 검색"></div>
+</main>
+
+<aside class="rightcol"><div class="rightstack">
+  <div class="panel"><div class="side-title">커뮤니티 현황</div><div class="stat"><span class="small">표시 중인 글</span><b id="postCount">—</b></div><div class="stat"><span class="small">내 계정</span><b id="accountStatus">게스트</b></div></div>
+  <div class="panel"><div class="side-title">처음 오셨나요?</div><p style="margin:0 0 12px">계정을 만들면 글과 댓글을 작성하고 추천할 수 있어요.</p><button id="joinBtn" class="primary" style="width:100%">가입 / 로그인</button></div>
+  <div class="panel"><div class="side-title">안내</div><p class="small">비밀번호를 다른 곳과 공유하지 마세요. 개인정보나 민감한 정보를 게시하지 말고, 문제 있는 게시물은 신고해 주세요.</p></div>
+</div></aside>
+</div>
+
+<div class="modalback" id="authModal"><div class="modal" role="form" autocomplete="on">
+<div class="section-head"><h2 id="authTitle">로그인</h2><button data-close="authModal">닫기</button></div>
+<div class="notice">이메일 인증 설정에 따라 가입 후 메일 확인이 필요할 수 있어요.</div>
+<div class="field"><label>이메일</label><input id="email" type="email" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
+<div class="field"><label>비밀번호 (8자 이상 권장)</label><input id="password" type="password" name="password" autocomplete="current-password" placeholder="비밀번호"></div>
+<div class="field" id="nicknameField"><label>닉네임 (가입 시)</label><input id="nickname" maxlength="24" placeholder="커뮤니티에서 사용할 닉네임"></div>
+<div class="row"><button id="loginSubmit" class="primary">로그인</button><button id="signupSubmit">회원가입</button></div>
+<p class="small">로그인 후 마이페이지에서 닉네임을 바꿀 수 있어요.</p>
+</div></div>
+
+<div class="modalback" id="writeModal"><div class="modal">
+<div class="section-head"><h2 id="writeTitle">새 글 작성</h2><button data-close="writeModal">닫기</button></div>
+<div class="field"><label>게시판</label><select id="postCategory"><option value="자유">자유게시판</option></select></div>
+<div class="field"><label>제목</label><input id="postTitle" type="text" name="community-post-title" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" maxlength="160" placeholder="제목을 입력하세요"></div>
+<div class="field"><label>내용</label><textarea id="postBody" name="community-post-body" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" maxlength="15000" placeholder="편하게 이야기를 나눠보세요."></textarea></div>
+<div class="field"><label>이미지 첨부 (이미지 파일 1개, 최대 5MB)</label><input id="postImage" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></div>
+<div class="row"><button id="publishBtn" class="primary">게시하기</button><button data-close="writeModal">취소</button></div>
+</div></div>
+
+<div class="modalback" id="profileModal"><div class="modal">
+<div class="section-head"><h2>마이페이지</h2><button data-close="profileModal">닫기</button></div>
+<div class="notice">내 계정 정보와 커뮤니티 활동을 확인할 수 있어요.</div>
+<div class="field"><label>계정 이메일</label><p id="profileEmail" class="small"></p></div>
+<div class="field"><label>닉네임</label><input id="profileNick" maxlength="24" placeholder="닉네임을 입력하세요"></div>
+<button id="saveProfile" class="primary">프로필 저장</button>
+<div class="actions">
+<button id="myPostsBtn">내 게시글</button>
+<button id="myCommentsBtn">내 댓글</button>
+<button id="friendsBtn">친구 관리</button>
+</div>
+<div id="myActivity" style="margin-top:18px"></div>
+<hr style="border-color:var(--line);margin:20px 0">
+<button id="logoutBtn" class="danger">로그아웃</button>
+</div></div>
+
+<div class="modalback" id="friendsModal"><div class="modal"><div class="section-head"><h2>유저 검색 · 친구</h2><button data-close="friendsModal">닫기</button></div><div class="field"><label>닉네임 검색</label><div class="row"><input id="userSearchInput" type="search" name="member-lookup" autocomplete="off" placeholder="닉네임 입력"><button id="userSearchBtn" class="primary">검색</button></div></div><div id="userSearchResults"></div><hr style="border-color:var(--line);margin:20px 0"><h3>받은 친구 요청</h3><div id="friendRequestsList" class="small">불러오는 중...</div><hr style="border-color:var(--line);margin:20px 0"><h3>보낸 친구 요청</h3><div id="sentFriendRequestsList" class="small">불러오는 중...</div><hr style="border-color:var(--line);margin:20px 0"><h3>내 친구</h3><div id="friendsList" class="small">불러오는 중...</div></div></div>
+<div class="modalback" id="detailModal"><div class="modal"><div class="section-head"><h2>게시글</h2><button data-close="detailModal">닫기</button></div><div id="detailContent"></div></div></div>
+<div class="modalback" id="adminModal"><div class="modal"><div class="section-head"><h2>관리자 메뉴</h2><button data-close="adminModal">닫기</button></div><h3>회원 정지 관리</h3><div class="notice">닉네임으로 회원을 검색하고 이메일을 확인할 수 있어요. 정지/해제 기능은 유지되며 관리자 계정과 본인 계정은 보호됩니다.</div><div class="row"><input id="adminMemberSearch" type="search" autocomplete="off" placeholder="회원 닉네임 검색"><button id="adminMemberSearchBtn" class="primary">검색</button></div><div id="adminMembersList" style="margin:12px 0 22px"></div><hr style="border-color:var(--line);margin:20px 0"><h3>신고함</h3><div id="reportsList"></div></div></div>
+<div class="modalback" id="groupChatModal"><div class="modal"><div class="section-head"><h2>단체 채팅방</h2><button data-close="groupChatModal">닫기</button></div><div class="notice">관리자 또는 개발자가 초대한 회원만 해당 채팅방에 입장할 수 있어요. 채팅방 생성과 초대는 관리자/개발자만 가능합니다.</div><div id="createRoomArea" class="hidden"><div class="row"><input id="newRoomName" maxlength="60" placeholder="새 채팅방 이름"><button id="createRoomBtn" class="primary">방 만들기</button></div></div><h3>채팅방 목록</h3><div id="chatRoomsList" class="small">불러오는 중...</div><div id="activeChatArea" class="hidden"><hr style="border-color:var(--line);margin:18px 0"><div id="chatConversationView"><div class="section-head"><div><button id="backToRoomsBtn">← 채팅방 목록</button><h3 id="activeRoomTitle" style="margin:10px 0 0">채팅방</h3></div><div class="row" style="flex:0 0 auto"><button id="openInviteScreenBtn" class="hidden">회원 초대</button><button id="refreshChatBtn">새로고침</button></div></div><div id="chatMessages" class="chat-messages"></div><div class="row"><input id="chatMessageInput" maxlength="2000" placeholder="메시지 입력"><button id="sendChatMessageBtn" class="primary">전송</button></div></div><div id="chatInviteScreen" class="hidden"><div class="section-head"><h3 style="margin:0">회원 초대</h3><button id="backToChatBtn">← 채팅으로 돌아가기</button></div><div class="notice">초대할 회원의 정확한 닉네임을 입력하세요. 초대된 회원은 이 채팅방에 입장할 수 있어요.</div><div class="row"><input id="inviteNickname" maxlength="24" placeholder="초대할 회원 닉네임"><button id="inviteRoomBtn" class="primary">초대</button></div><p class="small">관리자 또는 개발자만 초대할 수 있어요.</p></div></div></div></div>
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script>
+(() => {
+"use strict";
+const SUPABASE_URL = "https://hrutxtcgsojpphrbvngw.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhydXR4dGNnc29qcHBocmJ2bmd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMjIxNDcsImV4cCI6MjEwNzY5ODE0N30.fZG4iTmOS5t_KU_ro1OgDnhJ2_90UKDHKVKefM6QYlY";
+const configured = !SUPABASE_URL.startsWith("YOUR_") && !SUPABASE_ANON_KEY.startsWith("YOUR_") && window.supabase;
+const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let user=null, profile=null, currentCat="자유", posts=[], editingId=null, openedPost=null, likedIds=new Set();
+let currentPage=1;
+const POSTS_PER_PAGE=10;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const linkify=s=>esc(s).replace(/(https?:\/\/[^\s<]+)/g, raw=>{const url=raw.replace(/[),.!?]+$/,"");const tail=raw.slice(url.length);return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${tail}`;});
+const show=id=>$(id).classList.add("show");
+const hide=id=>$(id).classList.remove("show");
+function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3200)}
+function requireDb(){if(!db){toast("Supabase 설정을 확인해 주세요.");return false}return true}
+function requireUser(){if(!user){show("authModal");return false}return true}
+function timeAgo(d){const ms=Date.now()-new Date(d).getTime(),m=Math.floor(ms/60000);if(m<1)return"방금 전";if(m<60)return m+"분 전";if(m<1440)return Math.floor(m/60)+"시간 전";return Math.floor(m/1440)+"일 전"}
+function initials(n){return esc((n||"?").trim().slice(0,1).toUpperCase())}
+function recommendationCount(p){const n=p?.recommendation_count;return n===null||n===undefined?(p?.likes?.[0]?.count||0):Number(n)}
+
+async function loadProfile(){
+ if(!user){profile=null;return}
+ const {data}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
+ profile=data;
+}
+
+async function refresh(){
+ if(!requireDb()){
+  $("feed").innerHTML='<div class="empty">Supabase 설정을 확인해 주세요.</div>';
+  return;
+ }
+ const {data:auth}=await db.auth.getUser();
+ user=auth?.user||null;
+ await loadProfile();
+ if(user && profile?.is_suspended){await db.auth.signOut();user=null;profile=null;toast("이 계정은 이용 정지 상태입니다.");}
+ $("who").textContent=user?(profile?.nickname||user.email?.split("@")[0]||"회원"):"로그인하지 않음";
+ $("authBtn").textContent=user?"내 프로필":"로그인";
+ $("accountStatus").textContent=user?(profile?.role==="admin"?"관리자":"회원"):"게스트";
+ $("joinBtn").textContent=user?"내 프로필":"가입 / 로그인";
+ $("adminBtn").classList.toggle("hidden",profile?.role!=="admin");
+ if(user){
+  const {data}=await db.from("likes").select("post_id").eq("user_id",user.id);
+  likedIds=new Set((data||[]).map(x=>x.post_id));
+ }else likedIds=new Set();
+
+ // 수정: 작성자 프로필 관계를 외래 키 이름으로 명시
+ const {data,error}=await db.from("posts")
+  .select("id,title,body,category,created_at,updated_at,user_id,image_url,is_pinned,recommendation_count,profiles!posts_user_id_fkey(nickname,role),likes(count),comments(count)")
+  .eq("is_hidden",false)
+  .in("category",["자유","공지"])
+  .order("created_at",{ascending:false})
+  .limit(150);
+
+ if(error){
+  $("feed").innerHTML='<div class="empty">게시글을 불러오지 못했어요.<br><span class="small">'+esc(error.message)+'</span></div>';
+  return;
+ }
+ posts=data||[];
+ render();
+}
+
+function render(){
+ const q=$("search").value.trim().toLowerCase(),sort=$("sort").value;
+ let arr=posts.filter(p=>p.category===currentCat&&(!q||(p.title+" "+p.body+" "+(p.profiles?.nickname||"")).toLowerCase().includes(q)));
+ arr.sort((a,b)=>Number(!!b.is_pinned)-Number(!!a.is_pinned) || (sort==="hot" ? ((recommendationCount(b)*3+(b.comments?.[0]?.count||0))-(recommendationCount(a)*3+(a.comments?.[0]?.count||0))) : (new Date(b.created_at)-new Date(a.created_at))));
+ const totalPages=Math.max(1,Math.ceil(arr.length/POSTS_PER_PAGE));
+ currentPage=Math.min(currentPage,totalPages);
+ const start=(currentPage-1)*POSTS_PER_PAGE;
+ const pageItems=arr.slice(start,start+POSTS_PER_PAGE);
+ $("feedTitle").textContent=currentCat==="공지"?"공지사항":"자유게시판";
+ $("postCount").textContent=arr.length+"개";
+ const pinned=posts.filter(p=>p.category==="공지"&&p.is_pinned).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+ const noticeButton=$("topNotice");
+ noticeButton.textContent=pinned?"📌 공지사항 · "+pinned.title:"📌 고정된 공지사항이 없습니다.";
+ noticeButton.disabled=!pinned;
+ noticeButton.onclick=()=>{if(pinned)openDetail(pinned.id)};
+ if(!pageItems.length){
+  $("feed").innerHTML='<div class="empty">아직 글이 없거나 검색 결과가 없어요.<br><br><button class="primary" id="emptyWrite">글 작성하기</button></div>';
+  const b=$("emptyWrite");if(b)b.onclick=openWriter;
+ }else{
+  $("feed").innerHTML=pageItems.map(p=>`<article class="post" data-post-open="${p.id}" tabindex="0" role="button" aria-label="게시글 열기: ${esc(p.title)}"><div class="meta"><span class="avatar">${initials(p.profiles?.nickname||"회원")}</span><b>${esc(p.profiles?.nickname||"탈퇴한 회원")}</b><span class="role-badge ${p.profiles?.role==="admin"?"admin":(["moderator","staff","mod"].includes(p.profiles?.role)?"moderator":"")}">${p.profiles?.role==="admin"?"관리자":(["moderator","staff","mod"].includes(p.profiles?.role)?"어드민":"사용자")}</span><span>·</span><span>${timeAgo(p.created_at)}</span><span class="tag">${esc(p.category)}</span>${p.is_pinned?'<span class="tag">📌 고정</span>':''}${p.updated_at&&p.updated_at!==p.created_at?'<span>수정됨</span>':''}</div><h2>${esc(p.title)}</h2><div class="postbody">${linkify(p.body.length>240?p.body.slice(0,240)+"…":p.body)}</div>${p.image_url?`<img class="postimg" loading="lazy" src="${esc(p.image_url)}" alt="첨부 이미지">`:""}<div class="actions"><button class="${likedIds.has(p.id)?"liked":""}" data-like="${p.id}">▲ 추천 ${recommendationCount(p)}</button>${profile?.role==="admin"?`<button data-edit-recommendation="${p.id}">추천 수 수정</button>`:""}<button data-open="${p.id}">댓글 ${p.comments?.[0]?.count||0}</button><button data-report="${p.id}">신고</button>${user&&(user.id===p.user_id||profile?.role==="admin")&&(p.category!=="공지"||profile?.role==="admin")?`<button data-edit="${p.id}">수정</button><button class="danger" data-delete="${p.id}">삭제</button>`:""}${profile?.role==="admin"&&p.category==="공지"?`<button data-pin="${p.id}">${p.is_pinned?"📌 고정 해제":"📌 상단 고정"}</button>`:""}</div></article>`).join("");
+  $("feed").querySelectorAll("[data-post-open]").forEach(card=>{card.style.cursor="pointer";card.onclick=e=>{if(e.target.closest("button,a,input,textarea,select"))return;openDetail(card.dataset.postOpen)};card.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&!e.target.closest("button,a,input,textarea,select")){e.preventDefault();openDetail(card.dataset.postOpen)}}});
+  $("feed").querySelectorAll("[data-like]").forEach(b=>b.onclick=()=>toggleLike(b.dataset.like));
+  $("feed").querySelectorAll("[data-edit-recommendation]").forEach(b=>b.onclick=e=>{e.stopPropagation();editRecommendationCount(b.dataset.editRecommendation)});
+  $("feed").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));
+  $("feed").querySelectorAll("[data-report]").forEach(b=>b.onclick=()=>report(b.dataset.report));
+  $("feed").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editPost(b.dataset.edit));
+  $("feed").querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deletePost(b.dataset.delete));
+  $("feed").querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>togglePin(b.dataset.pin));
+ }
+ const pager=$("pagination");
+ pager.innerHTML='';
+ if(arr.length>0){
+  const prev=document.createElement('button');prev.textContent='← 이전';prev.disabled=currentPage===1;prev.onclick=()=>{currentPage--;render();};pager.appendChild(prev);
+  const info=document.createElement('span');info.className='page-info';info.textContent=currentPage+' / '+totalPages+' 페이지';pager.appendChild(info);
+  const next=document.createElement('button');next.textContent='다음 →';next.disabled=currentPage===totalPages;next.onclick=()=>{currentPage++;render();};pager.appendChild(next);
+ }
+}
+
+function configurePostCategories(selected="자유"){
+ const select=$("postCategory");
+ select.innerHTML='<option value="자유">자유게시판</option>'+(profile?.role==="admin"?'<option value="공지">공지사항 (관리자 전용)</option>':'');
+ select.value=(selected==="공지"&&profile?.role!=="admin")?"자유":selected;
+}
+function openWriter(){
+ if(!requireUser())return;
+ editingId=null;
+ $("writeTitle").textContent="새 글 작성";
+ $("publishBtn").textContent="게시하기";
+ configurePostCategories(currentCat==="공지"&&profile?.role==="admin"?"공지":"자유");
+ $("postTitle").value="";$("postBody").value="";$("postImage").value="";
+ show("writeModal");
+}
+function editPost(id){
+ const p=posts.find(x=>x.id===id);if(!p)return;
+ if(p.category==="공지"&&profile?.role!=="admin"){toast("공지 수정은 관리자만 할 수 있어요.");return}
+ editingId=id;$("writeTitle").textContent="게시글 수정";$("publishBtn").textContent="수정 저장";
+ configurePostCategories(p.category);$("postTitle").value=p.title;$("postBody").value=p.body;$("postImage").value="";
+ show("writeModal");
+}
+async function uploadImage(file){
+ if(!file)return null;
+ if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)||file.size>5*1024*1024)throw Error("이미지는 PNG/JPG/WEBP/GIF, 5MB 이하만 가능해요.");
+ const ext={"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif"}[file.type];
+ const path=`${user.id}/${crypto.randomUUID()}.${ext}`;
+ const {error}=await db.storage.from("post-images").upload(path,file,{contentType:file.type,upsert:false});
+ if(error)throw error;
+ return db.storage.from("post-images").getPublicUrl(path).data.publicUrl;
+}
+
+$("publishBtn").onclick=async()=>{
+ if(!requireUser())return;
+ const title=$("postTitle").value.trim(),body=$("postBody").value.trim();
+ if(!title||!body){toast("제목과 내용을 입력해 주세요.");return}
+ const b=$("publishBtn");b.disabled=true;
+ try{
+  let image_url=null;const file=$("postImage").files[0];if(file)image_url=await uploadImage(file);
+  if(editingId){
+   const patch={title,body,category:$("postCategory").value,updated_at:new Date().toISOString()};
+   if(image_url)patch.image_url=image_url;
+   const {error}=await db.from("posts").update(patch).eq("id",editingId);
+   if(error)throw error;
+  }else{
+   const {error}=await db.from("posts").insert({user_id:user.id,title,body,category:$("postCategory").value,image_url});
+   if(error)throw error;
+  }
+  hide("writeModal");$("postTitle").value="";$("postBody").value="";$("postImage").value="";toast("저장했어요.");await refresh();
+ }catch(e){toast("저장 실패: "+e.message)}
+ finally{b.disabled=false;$("publishBtn").textContent=editingId?"수정 저장":"게시하기"}
+};
+
+async function togglePin(id){
+ if(profile?.role!=="admin"){toast("관리자 권한이 필요해요.");return}
+ const p=posts.find(x=>x.id===id);if(!p||p.category!=="공지")return;
+ const {error}=await db.from("posts").update({is_pinned:!p.is_pinned}).eq("id",id);
+ if(error){toast("공지 고정 실패: "+error.message);return}
+ toast(p.is_pinned?"공지 고정을 해제했어요.":"공지를 상단에 고정했어요.");
+ await refresh();
+}
+
+async function deletePost(id){
+ if(!requireUser()||!confirm("이 게시글을 삭제할까요?"))return;
+ const {error}=await db.from("posts").delete().eq("id",id);
+ if(error)toast("삭제 실패: "+error.message);else{toast("삭제했어요.");await refresh()}
+}
+async function toggleLike(id){
+ if(!requireUser())return;
+ const exists=likedIds.has(id);
+ const r=exists?await db.from("likes").delete().eq("post_id",id).eq("user_id",user.id):await db.from("likes").insert({post_id:id,user_id:user.id});
+ if(r.error)toast("추천 처리 실패: "+r.error.message);else await refresh();
+}
+
+async function editRecommendationCount(id){
+ if(profile?.role!=="admin"){toast("관리자만 추천 수를 수정할 수 있어요.");return}
+ const p=posts.find(x=>x.id===id);if(!p)return;
+ const value=prompt("설정할 추천 수를 입력하세요. 0 이상의 정수만 가능합니다.",String(recommendationCount(p)));
+ if(value===null)return;
+ const countText=value.trim();
+ if(!/^\d+$/.test(countText)||!Number.isSafeInteger(Number(countText))){toast("추천 수는 0 이상의 정수로 입력해 주세요.");return}
+ const {error}=await db.rpc("admin_set_recommendation_count",{p_post_id:id,p_count:Number(countText)});
+ if(error){toast("추천 수 수정 실패: "+error.message+" (Supabase SQL 정책/함수를 확인해 주세요.)");return}
+ toast("추천 수를 수정했어요.");await refresh();
+}
+
+async function openDetail(id){
+ const p=posts.find(x=>x.id===id);if(!p)return;
+ openedPost=p;
+
+ // 수정: 댓글 작성자 프로필 관계도 외래 키 이름으로 명시
+ const {data:comments,error}=await db.from("comments")
+  .select("id,post_id,parent_id,body,created_at,user_id,profiles!comments_user_id_fkey(nickname)")
+  .eq("post_id",id)
+  .eq("is_hidden",false)
+  .order("created_at",{ascending:true});
+
+ if(error){toast("게시글은 열었지만 댓글을 불러오지 못했어요: "+error.message)}
+ const safeComments=error?[]:(comments||[]);
+ const renderComment=c=>`<div class="comment"><div class="meta"><b>${esc(c.profiles?.nickname||"회원")}</b><span>· ${timeAgo(c.created_at)}</span></div><p>${linkify(c.body)}</p><div class="actions"><button data-reply="${c.id}">답글</button>${user&&(user.id===c.user_id||profile?.role==="admin")?`<button class="danger" data-delcomment="${c.id}">삭제</button>`:""}</div>${safeComments.filter(x=>x.parent_id===c.id).map(x=>`<div class="commentchildren">${renderComment(x)}</div>`).join("")}</div>`;
+ $("detailContent").innerHTML=`<div class="meta"><span class="tag">${esc(p.category)}</span><b>${esc(p.profiles?.nickname||"회원")}</b><span>${timeAgo(p.created_at)}</span></div><h2>${esc(p.title)}</h2><p class="postbody">${linkify(p.body)}</p>${p.image_url?`<img class="postimg" src="${esc(p.image_url)}" alt="첨부 이미지">`:""}<div class="actions"><button data-detail-like="${p.id}">▲ 추천 ${recommendationCount(p)}</button>${profile?.role==="admin"?`<button data-detail-edit-recommendation="${p.id}">추천 수 수정</button>`:""}<button data-detail-report="${p.id}">신고</button></div><div class="comments"><h3>댓글 ${safeComments.length}</h3><div class="row"><input id="commentInput" type="text" name="community-comment-entry" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" maxlength="3000" placeholder="댓글을 입력하세요"><button class="primary" id="sendComment">등록</button></div><div id="commentList">${safeComments.filter(c=>!c.parent_id).map(c=>renderComment(c)).join("")||'<p class="small">첫 댓글을 남겨보세요.</p>'}</div></div>`;
+ $("sendComment").onclick=()=>sendComment(id,null);
+ $("detailContent").querySelector("[data-detail-like]").onclick=()=>toggleLike(id);
+ const editRecommendationButton=$("detailContent").querySelector("[data-detail-edit-recommendation]");if(editRecommendationButton)editRecommendationButton.onclick=()=>editRecommendationCount(id);
+ $("detailContent").querySelector("[data-detail-report]").onclick=()=>report(id);
+ $("detailContent").querySelectorAll("[data-reply]").forEach(b=>b.onclick=()=>{const inp=$("commentInput");inp.placeholder="답글 작성 중…";inp.dataset.parent=b.dataset.reply;inp.focus()});
+ $("detailContent").querySelectorAll("[data-delcomment]").forEach(b=>b.onclick=async()=>{if(confirm("댓글을 삭제할까요?")){const r=await db.from("comments").delete().eq("id",b.dataset.delcomment);if(r.error)toast(r.error.message);else openDetail(id)}});
+ show("detailModal");
+}
+async function sendComment(postId,parentId){
+ if(!requireUser())return;
+ const body=$("commentInput").value.trim();if(!body)return;
+ const parent=$("commentInput").dataset.parent||parentId;
+ const {error}=await db.from("comments").insert({post_id:postId,user_id:user.id,parent_id:parent||null,body});
+ if(error)toast("댓글 등록 실패: "+error.message);else{await refresh();await openDetail(postId)}
+}
+async function report(postId){
+ if(!requireUser())return;
+ const reason=prompt("신고 사유를 간단히 입력해 주세요.");
+ if(!reason?.trim())return;
+ const {error}=await db.from("reports").insert({post_id:postId,reporter_id:user.id,reason:reason.trim().slice(0,1000)});
+ toast(error?"신고 실패: "+error.message:"신고가 접수됐어요.");
+}
+async function searchAdminMembers(){
+ if(profile?.role!=="admin"){toast("관리자 권한이 필요해요.");return}
+ const q=$("adminMemberSearch").value.trim();
+ const el=$("adminMembersList");
+ el.textContent="회원 목록을 불러오는 중...";
+ // 이메일은 auth.users에서 직접 조회하지 않고, 관리자 권한을 서버에서 검증하는 RPC로 가져옵니다.
+ const {data,error}=await db.rpc("admin_list_member_emails",{p_query:q});
+ if(error){
+  el.innerHTML='<p class="small">회원 목록을 불러오지 못했어요: '+esc(error.message)+'<br>Supabase SQL Editor에서 admin-email-function.sql의 SQL을 실행했는지 확인해 주세요.</p>';
+  return;
+ }
+ el.innerHTML=(data||[]).map(m=>{
+  const protectedUser=m.id===user?.id||m.role==="admin";
+  const status=m.is_suspended?'<span class="tag" style="color:var(--danger)">정지됨</span>':'<span class="tag">정상</span>';
+  const action=protectedUser?'<span class="small">보호된 계정</span>':`<button class="${m.is_suspended?"primary":"danger"}" data-suspend-user="${esc(m.id)}" data-suspend-value="${m.is_suspended?"false":"true"}">${m.is_suspended?"정지 해제":"회원 정지"}</button>`;
+  return `<div class="activity-item"><div class="row" style="align-items:center"><div style="min-width:0;overflow-wrap:anywhere"><b>${esc(m.nickname||"이름 없는 회원")}</b> <span class="role-badge ${m.role==="admin"?"admin":""}">${m.role==="admin"?"관리자":"회원"}</span><div class="small">이메일: ${esc(m.email||"이메일 없음")}</div><div class="small">${status}</div></div>${action}</div></div>`;
+ }).join("")||'<div class="empty">검색된 회원이 없어요.</div>';
+ el.querySelectorAll("[data-suspend-user]").forEach(b=>b.onclick=async()=>{
+  const suspend=b.dataset.suspendValue==="true";
+  if(!confirm(suspend?"이 회원을 정지할까요?":"이 회원의 정지를 해제할까요?"))return;
+  b.disabled=true;
+  const {error}=await db.rpc("set_member_suspension",{p_user_id:b.dataset.suspendUser,p_is_suspended:suspend});
+  if(error){toast("처리 실패: "+error.message);b.disabled=false;return}
+  toast(suspend?"회원 이용을 정지했어요.":"회원 정지를 해제했어요.");
+  await searchAdminMembers();
+ });
+}
+
+async function openAdmin(){
+ if(profile?.role!=="admin"){toast("관리자 권한이 필요해요.");return}
+ await searchAdminMembers();
+ const {data,error}=await db.from("reports")
+  .select("id,post_id,reporter_id,reason,status,created_at,posts(title,body,image_url,category,created_at)")
+  .not("status","in","(dismissed,reviewed)").order("created_at",{ascending:false}).limit(100);
+ if(error){toast("신고함 로딩 실패: "+error.message);return}
+ const el=$("reportsList");
+ el.innerHTML=(data||[]).map(r=>{
+  const p=r.posts;
+  return `<div class="post" style="margin:10px 0"><div class="meta"><b>신고 상태: ${esc(r.status||"pending")}</b><span>${timeAgo(r.created_at)}</span></div>
+   <p><b>신고 사유:</b> ${esc(r.reason)}</p>
+   <div style="padding:12px;margin:8px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)">
+    <div class="meta"><span class="tag">${esc(p?.category||"게시글")}</span>${p?.created_at?`<span>${timeAgo(p.created_at)}</span>`:""}</div>
+    <h3 style="margin:8px 0">${esc(p?.title||"(게시글을 찾을 수 없음)")}</h3>
+    <p class="postbody" style="white-space:pre-wrap">${esc(p?.body||"게시글 내용이 없거나 이미 삭제됐어요.")}</p>
+    ${p?.image_url?`<img class="postimg" loading="lazy" src="${esc(p.image_url)}" alt="신고된 게시글 이미지">`:""}
+   </div>
+   <div class="actions"><button class="danger" data-delete-reported-post="${esc(r.post_id||"")}" data-report-id="${esc(r.id)}" ${!p||!r.post_id?"disabled":""}>글 삭제</button><button data-status="${esc(r.id)}" data-value="dismissed">기각</button></div></div>`;
+ }).join("")||'<div class="empty">접수된 신고가 없어요.</div>';
+ el.querySelectorAll("[data-delete-reported-post]").forEach(b=>b.onclick=async()=>{
+  const postId=b.dataset.deleteReportedPost;
+  if(!postId||!confirm("신고된 게시글을 삭제할까요?"))return;
+  b.disabled=true;
+  // 먼저 게시글을 실제 삭제하고, 연결된 신고가 남아 있다면 검토 완료 상태로 바꿉니다.
+  let {error:deleteError}=await db.from("posts").delete().eq("id",postId);
+  if(deleteError){
+   // FK 제약으로 실제 삭제가 막히면 공개 목록에서 숨기는 방식으로 처리합니다.
+   const {error:hideError}=await db.from("posts").update({is_hidden:true}).eq("id",postId);
+   if(hideError){b.disabled=false;toast("글 삭제 실패: "+deleteError.message);return}
+  }
+  const {error:reportError}=await db.from("reports").update({status:"reviewed"}).eq("id",b.dataset.reportId);
+  if(reportError){toast("글은 삭제했지만 신고 상태 변경은 실패했어요: "+reportError.message)}else toast("신고된 글을 삭제했어요.");
+  await refresh();await openAdmin();
+ });
+ el.querySelectorAll("[data-status]").forEach(b=>b.onclick=async()=>{const {error}=await db.from("reports").update({status:b.dataset.value}).eq("id",b.dataset.status);if(error)toast(error.message);else{toast("신고를 기각했어요.");openAdmin()}});
+ show("adminModal");
+}
+
+async function openFriends(){
+ if(!requireUser())return;
+ show("friendsModal");
+ $("userSearchResults").innerHTML='<p class="small">닉네임으로 검색해 친구 요청을 보낼 수 있어요.</p>';
+ await loadFriendLists();
+}
+async function searchUsers(){
+ if(!requireUser())return;
+ const q=$("userSearchInput").value.trim();
+ if(q.length<1){toast("검색할 닉네임을 입력해 주세요.");return}
+ const {data,error}=await db.from("profiles").select("id,nickname,role").ilike("nickname",`%${q.replace(/[%_]/g,'')}%`).neq("id",user.id).limit(20);
+ const el=$("userSearchResults");
+ if(error){el.innerHTML='<p class="small">검색 실패: '+esc(error.message)+'</p>';return}
+ if(!data?.length){el.innerHTML='<p class="small">검색 결과가 없어요.</p>';return}
+ const {data:rels}=await db.from("friendships").select("id,requester_id,addressee_id,status").or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+ const relMap=new Map((rels||[]).map(r=>[r.requester_id===user.id?r.addressee_id:r.requester_id,r]));
+ el.innerHTML=data.map(u=>{const r=relMap.get(u.id);let action='';if(!r)action=`<button data-friend-add="${u.id}">친구 추가</button>`;else if(r.status==='accepted')action='<span class="tag">친구</span>';else if(r.requester_id===user.id)action='<span class="small">요청 보냄</span>';else action=`<button data-friend-accept="${r.id}">요청 수락</button>`;return `<div class="activity-item"><div class="row" style="align-items:center"><div><b>${esc(u.nickname||'이름 없는 회원')}</b> <span class="role-badge ${u.role==='admin'?'admin':''}">${u.role==='admin'?'관리자':['moderator','staff','mod'].includes(u.role)?'어드민':'사용자'}</span></div>${action}</div></div>`}).join('');
+ el.querySelectorAll('[data-friend-add]').forEach(b=>b.onclick=async()=>{const {error}=await db.from('friendships').insert({requester_id:user.id,addressee_id:b.dataset.friendAdd,status:'pending'});if(error)toast('친구 요청 실패: '+error.message);else{toast('친구 요청을 보냈어요.');await searchUsers();await loadFriendLists()}});
+ el.querySelectorAll('[data-friend-accept]').forEach(b=>b.onclick=async()=>{const {error}=await db.from('friendships').update({status:'accepted'}).eq('id',b.dataset.friendAccept).eq('addressee_id',user.id);if(error)toast('요청 수락 실패: '+error.message);else{toast('친구가 되었어요.');await searchUsers();await loadFriendLists()}});
+}
+async function loadFriendLists(){
+ const reqEl=$("friendRequestsList"),sentEl=$("sentFriendRequestsList"),listEl=$("friendsList");
+ const {data,error}=await db.from('friendships').select('id,requester_id,addressee_id,status').or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`).order('created_at',{ascending:false}).limit(100);
+ if(error){reqEl.textContent='불러오기 실패: '+error.message;sentEl.textContent='';listEl.textContent='';return}
+ const rows=data||[], incoming=rows.filter(r=>r.status==='pending'&&r.addressee_id===user.id), outgoing=rows.filter(r=>r.status==='pending'&&r.requester_id===user.id), friends=rows.filter(r=>r.status==='accepted');
+ const ids=[...new Set(incoming.map(r=>r.requester_id).concat(outgoing.map(r=>r.addressee_id),friends.map(r=>r.requester_id===user.id?r.addressee_id:r.requester_id)))];
+ let names={};if(ids.length){const {data:ps}=await db.from('profiles').select('id,nickname').in('id',ids);(ps||[]).forEach(x=>names[x.id]=x.nickname||'회원')}
+ reqEl.innerHTML=incoming.length?incoming.map(r=>`<div class="activity-item"><div class="row" style="align-items:center"><b>${esc(names[r.requester_id]||'회원')}</b><button data-accept-list="${r.id}">수락</button></div></div>`).join(''):'받은 친구 요청이 없어요.';
+ reqEl.querySelectorAll('[data-accept-list]').forEach(b=>b.onclick=async()=>{const {error}=await db.from('friendships').update({status:'accepted'}).eq('id',b.dataset.acceptList).eq('addressee_id',user.id);if(error)toast('요청 수락 실패: '+error.message);else{toast('친구가 되었어요.');await loadFriendLists()}});
+ sentEl.innerHTML=outgoing.length?outgoing.map(r=>`<div class="activity-item"><div class="row" style="align-items:center"><b>${esc(names[r.addressee_id]||'회원')}</b><span class="small">수락 대기 중</span></div></div>`).join(''):'보낸 친구 요청이 없어요.';
+ listEl.innerHTML=friends.length?friends.map(r=>{const id=r.requester_id===user.id?r.addressee_id:r.requester_id;return `<div class="activity-item">${esc(names[id]||'회원')}</div>`}).join(''):'아직 친구가 없어요.';
+}
+
+
+let activeChatRoom=null;
+async function openGroupChat(){
+ if(!requireUser())return;
+ show("groupChatModal");
+ $("createRoomArea").classList.toggle("hidden",!(profile?.role==="admin"));
+ $("activeChatArea").classList.add("hidden");
+ $("chatInviteScreen").classList.add("hidden");
+ $("chatConversationView").classList.remove("hidden");
+ activeChatRoom=null;
+ await loadChatRooms();
+}
+async function loadChatRooms(){
+ const el=$("chatRoomsList");el.textContent="초대받은 채팅방을 불러오는 중...";
+ const {data:members,error}=await db.from("chat_room_members").select("room_id").eq("user_id",user.id);
+ if(error){el.textContent="채팅방 목록을 불러오지 못했어요: "+error.message+" (친구/채팅 SQL을 실행했는지 확인해 주세요.)";return}
+ const ids=(members||[]).map(m=>m.room_id);
+ if(!ids.length){el.innerHTML='<p class="small">초대받은 채팅방이 없어요.</p>';return}
+ const {data,error:roomError}=await db.from("chat_rooms").select("id,name,created_at").eq("is_archived",false).in("id",ids).order("created_at",{ascending:false});
+ if(roomError){el.textContent="채팅방을 불러오지 못했어요: "+roomError.message;return}
+ el.innerHTML=data?.length?data.map(r=>`<div class="activity-item"><div class="row" style="align-items:center"><b>${esc(r.name)}</b><button data-enter-room="${r.id}">입장</button></div></div>`).join(""):'<p class="small">초대받은 채팅방이 없어요.</p>';
+ el.querySelectorAll("[data-enter-room]").forEach(b=>b.onclick=()=>enterChatRoom(b.dataset.enterRoom));
+}
+async function enterChatRoom(id){
+ const {data:member,error:memberError}=await db.from("chat_room_members").select("room_id").eq("room_id",id).eq("user_id",user.id).maybeSingle();
+ if(memberError||!member){toast("개발자에게 초대를 받아야 입장할 수 있어요.");return}
+ const {data:room,error}=await db.from("chat_rooms").select("id,name").eq("id",id).single();
+ if(error){toast("채팅방 입장 실패: "+error.message);return}
+ activeChatRoom=room;$("activeRoomTitle").textContent=room.name;$("activeChatArea").classList.remove("hidden");
+ $("openInviteScreenBtn").classList.toggle("hidden",profile?.role!=="admin");
+ await loadChatMessages();
+}
+async function inviteToRoom(){
+ if(!(profile?.role==="admin")||!activeChatRoom){toast("관리자만 회원을 초대할 수 있어요.");return}
+ const nickname=$("inviteNickname").value.trim();if(!nickname){toast("초대할 회원 닉네임을 입력해 주세요.");return}
+ const {data:target,error:findError}=await db.from("profiles").select("id,nickname").ilike("nickname",nickname).limit(1).maybeSingle();
+ if(findError||!target){toast("해당 닉네임의 회원을 찾지 못했어요.");return}
+ const {error}=await db.from("chat_room_members").insert({room_id:activeChatRoom.id,user_id:target.id,invited_by:user.id});
+ if(error){toast(error.code==="23505"?"이미 초대된 회원이에요.":"초대 실패: "+error.message);return}
+ $("inviteNickname").value="";toast((target.nickname||"회원")+"님을 초대했어요.");
+}
+async function loadChatMessages(){
+ if(!activeChatRoom)return;
+ const el=$("chatMessages");
+ const {data,error}=await db.from("chat_messages").select("id,room_id,user_id,body,created_at,profiles!chat_messages_user_id_fkey(nickname)").eq("room_id",activeChatRoom.id).order("created_at",{ascending:true}).limit(200);
+ if(error){el.textContent="메시지를 불러오지 못했어요: "+error.message;return}
+ el.innerHTML=data?.length?data.map(m=>`<div class="chat-message"><div class="meta"><b>${esc(m.profiles?.nickname||"회원")}</b><span>${timeAgo(m.created_at)}</span>${(profile?.role==="admin"||m.user_id===user?.id)?`<button class="danger" data-delete-chat-message="${m.id}" style="margin-left:auto;padding:4px 8px;font-size:12px">삭제</button>`:""}</div><div class="postbody">${linkify(m.body)}</div></div>`).join(""):'<p class="small">첫 메시지를 보내 보세요.</p>';
+ el.querySelectorAll("[data-delete-chat-message]").forEach(b=>b.onclick=()=>deleteChatMessage(b.dataset.deleteChatMessage));
+ el.scrollTop=el.scrollHeight;
+}
+async function deleteChatMessage(messageId){
+ if(!user||!activeChatRoom)return;
+ if(!confirm("이 채팅 메시지를 삭제할까요? 삭제하면 복구할 수 없어요."))return;
+ const {error}=await db.from("chat_messages").delete().eq("id",messageId).eq("room_id",activeChatRoom.id);
+ if(error){toast("메시지 삭제 실패: "+error.message+" (Supabase 삭제 정책을 확인해 주세요.)");return}
+ toast("메시지를 삭제했어요.");
+ await loadChatMessages();
+}
+async function createChatRoom(){
+ if(!user || !(profile?.role==="admin")){toast("관리자만 채팅방을 만들 수 있어요.");return}
+ const name=$("newRoomName").value.trim();
+ if(!name){toast("채팅방 이름을 입력해 주세요.");return}
+ // chat_rooms 직접 INSERT 대신 서버 측 RPC로 생성해 RLS를 안전하게 처리
+ const {data:room,error}=await db.rpc("create_chat_room",{p_name:name});
+ if(error){toast("채팅방 생성 실패: "+error.message);return}
+ if(!room?.id){toast("채팅방 생성 결과를 확인하지 못했어요.");return}
+ const {error:memberError}=await db.from("chat_room_members").insert({room_id:room.id,user_id:user.id,invited_by:user.id});
+ if(memberError){toast("방은 생성됐지만 입장 권한 설정 실패: "+memberError.message);await loadChatRooms();return}
+ $("newRoomName").value="";toast("채팅방을 만들었어요.");await loadChatRooms();
+}
+async function sendChatMessage(){
+ if(!requireUser()||!activeChatRoom)return;
+ const body=$("chatMessageInput").value.trim();if(!body)return;
+ const {error}=await db.from("chat_messages").insert({room_id:activeChatRoom.id,user_id:user.id,body});
+ if(error){toast("메시지 전송 실패: "+error.message);return}
+ $("chatMessageInput").value="";await loadChatMessages();
+}
+
+function openProfile(){
+ if(!user){show("authModal");return}
+ $("profileNick").value=profile?.nickname||"";
+ $("profileEmail").textContent=user?.email||"";
+ $("myActivity").replaceChildren();
+ show("profileModal");
+}
+
+$("authBtn").onclick=()=>user?openProfile():show("authModal");
+$("menuBoards").onclick=()=>{document.querySelector("main").scrollIntoView({behavior:"smooth"});};
+$("menuProfile").onclick=openProfile;
+$("menuChats").onclick=openGroupChat;
+$("menuFriends").onclick=()=>user?openFriends():show("authModal");
+$("joinBtn").onclick=()=>user?openProfile():show("authModal");
+$("inviteRoomBtn").onclick=inviteToRoom;
+$("openInviteScreenBtn").onclick=()=>{if(!activeChatRoom)return;$("chatConversationView").classList.add("hidden");$("chatInviteScreen").classList.remove("hidden");$("inviteNickname").focus()};
+$("backToChatBtn").onclick=()=>{$("chatInviteScreen").classList.add("hidden");$("chatConversationView").classList.remove("hidden")};
+$("backToRoomsBtn").onclick=()=>{$("activeChatArea").classList.add("hidden");activeChatRoom=null;loadChatRooms()};
+$("createRoomBtn").onclick=createChatRoom;
+$("sendChatMessageBtn").onclick=sendChatMessage;
+$("refreshChatBtn").onclick=loadChatMessages;
+$("chatMessageInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChatMessage()});
+$("adminBtn").onclick=openAdmin;
+$("adminMemberSearchBtn").onclick=searchAdminMembers;
+$("adminMemberSearch").addEventListener("keydown",e=>{if(e.key==="Enter")searchAdminMembers()});
+$("friendsBtn").onclick=openFriends;
+$("userSearchBtn").onclick=searchUsers;
+$("userSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter")searchUsers()});
+
+$("loginSubmit").onclick=async()=>{
+ if(!requireDb())return;
+ const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+ if(error)toast(error.message);else{hide("authModal");toast("로그인했어요.");await refresh()}
+};
+$("signupSubmit").onclick=async()=>{
+ if(!requireDb())return;
+ const nickname=$("nickname").value.trim();
+ if(!nickname){toast("가입할 닉네임을 입력해 주세요.");return}
+ const {data,error}=await db.auth.signUp({email:$("email").value.trim(),password:$("password").value,options:{data:{nickname}}});
+ if(error)toast(error.message);else{hide("authModal");toast(data.session?"가입 완료!":"가입 요청 완료. 이메일을 확인해 주세요.");await refresh()}
+};
+$("saveProfile").onclick=async()=>{
+ if(!user)return;
+ const nickname=$("profileNick").value.trim();
+ if(!nickname||nickname.length>24){toast("닉네임은 1~24자로 입력해 주세요.");return}
+ const {error}=await db.from("profiles").update({nickname}).eq("id",user.id);
+ if(error)toast("프로필 저장 실패: "+error.message);
+ else{toast("프로필을 저장했어요.");await refresh();openProfile()}
+};
+$("logoutBtn").onclick=async()=>{
+ await db.auth.signOut();hide("profileModal");await refresh();toast("로그아웃했어요.");
+};
+
+/* 마이페이지: 내가 쓴 게시글 */
+$("myPostsBtn").onclick=async()=>{
+ if(!user)return;
+ const area=$("myActivity");
+ area.textContent="게시글을 불러오는 중...";
+ const {data,error}=await db.from("posts").select("id,title,body,category,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
+ area.replaceChildren();
+ if(error){area.textContent="게시글을 불러오지 못했어요: "+error.message;return}
+ const heading=document.createElement("h3");heading.textContent="내 게시글";area.appendChild(heading);
+ if(!data?.length){const p=document.createElement("p");p.className="small";p.textContent="작성한 게시글이 없어요.";area.appendChild(p);return}
+ for(const post of data){
+  const item=document.createElement("div");item.className="activity-item";
+  const title=document.createElement("h3");title.textContent=post.title;
+  const meta=document.createElement("div");meta.className="small";meta.textContent=post.category+" · "+timeAgo(post.created_at);
+  const body=document.createElement("p");body.textContent=post.body.length>180?post.body.slice(0,180)+"…":post.body;
+  item.append(title,meta,body);area.appendChild(item);
+ }
+};
+
+/* 마이페이지: 내가 쓴 댓글 */
+$("myCommentsBtn").onclick=async()=>{
+ if(!user)return;
+ const area=$("myActivity");
+ area.textContent="댓글을 불러오는 중...";
+ const {data,error}=await db.from("comments").select("id,body,created_at,post_id").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
+ area.replaceChildren();
+ if(error){area.textContent="댓글을 불러오지 못했어요: "+error.message;return}
+ const heading=document.createElement("h3");heading.textContent="내 댓글";area.appendChild(heading);
+ if(!data?.length){const p=document.createElement("p");p.className="small";p.textContent="작성한 댓글이 없어요.";area.appendChild(p);return}
+ for(const comment of data){
+  const item=document.createElement("div");item.className="activity-item";
+  const body=document.createElement("p");body.textContent=comment.body;
+  const meta=document.createElement("div");meta.className="small";meta.textContent=timeAgo(comment.created_at);
+  item.append(body,meta);area.appendChild(item);
+ }
+};
+
+$("writeBtn").onclick=openWriter;
+// 검색창은 로그인 폼 바깥에 두고, 포커스 직전에 readonly만 해제해 비밀번호 관리자 오인을 줄임
+$("search").addEventListener("pointerdown",()=>{$("search").removeAttribute("readonly")},{once:true});
+$("search").addEventListener("keydown",()=>{$("search").removeAttribute("readonly")},{once:true});
+$("search").oninput=()=>{currentPage=1;render()};
+$("sort").onchange=()=>{currentPage=1;render()};
+function setCat(cat){
+ currentCat=cat;
+ currentPage=1;
+ document.querySelectorAll("[data-cat]").forEach(b=>b.classList.toggle("active",b.dataset.cat===cat));
+ render();
+}
+document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>setCat(b.dataset.cat));
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>hide(b.dataset.close));
+document.querySelectorAll(".modalback").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)hide(m.id)}));
+
+if(db){
+ db.auth.onAuthStateChange(()=>setTimeout(refresh,0));
+ refresh();
+}else refresh();
+})();
+</script>
+<footer id="copyrightFooter" class="copyright-footer">© 2026 볼 — 시볼급 말랑함. All rights reserved.<span class="creator-mark">Designed and built by the site creator.</span></footer>
+</body>
+</html>
