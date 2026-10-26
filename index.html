@@ -180,8 +180,8 @@ textarea{resize:vertical;min-height:110px}
 <div class="section-head"><h2>마이페이지</h2><button data-close="profileModal">닫기</button></div>
 <div class="notice">내 계정 정보와 커뮤니티 활동을 확인할 수 있어요.</div>
 <div class="field"><label>계정 이메일</label><p id="profileEmail" class="small"></p></div>
-<div class="field"><label>닉네임</label><input id="profileNick" maxlength="24" placeholder="닉네임을 입력하세요"></div>
-<button id="saveProfile" class="primary">프로필 저장</button>
+<div class="field"><label>닉네임</label><p id="profileNickname" class="small"></p></div>
+<div class="field"><label>보유 포인트</label><p id="profilePoints" style="font-size:24px;font-weight:800;margin:4px 0">0 P</p><p class="small">포인트는 어드민이 지급하거나 차감할 수 있습니다.</p></div>
 <div class="actions">
 <button id="myPostsBtn">내 게시글</button>
 <button id="myCommentsBtn">내 댓글</button>
@@ -218,7 +218,6 @@ function requireDb(){if(!db){toast("Supabase 설정을 확인해 주세요.");re
 function requireUser(){if(!user){show("authModal");return false}return true}
 function timeAgo(d){const ms=Date.now()-new Date(d).getTime(),m=Math.floor(ms/60000);if(m<1)return"방금 전";if(m<60)return m+"분 전";if(m<1440)return Math.floor(m/60)+"시간 전";return Math.floor(m/1440)+"일 전"}
 function initials(n){return esc((n||"?").trim().slice(0,1).toUpperCase())}
-function recommendationCount(p){const n=p?.recommendation_count;return n===null||n===undefined?(p?.likes?.[0]?.count||0):Number(n)}
 
 async function loadProfile(){
  if(!user){profile=null;return}
@@ -247,7 +246,7 @@ async function refresh(){
 
  // 수정: 작성자 프로필 관계를 외래 키 이름으로 명시
  const {data,error}=await db.from("posts")
-  .select("id,title,body,category,created_at,updated_at,user_id,image_url,is_pinned,recommendation_count,profiles!posts_user_id_fkey(nickname,role),likes(count),comments(count)")
+  .select("id,title,body,category,created_at,updated_at,user_id,image_url,is_pinned,profiles!posts_user_id_fkey(nickname,role),likes(count),comments(count)")
   .eq("is_hidden",false)
   .in("category",["자유","공지"])
   .order("created_at",{ascending:false})
@@ -264,7 +263,7 @@ async function refresh(){
 function render(){
  const q=$("search").value.trim().toLowerCase(),sort=$("sort").value;
  let arr=posts.filter(p=>p.category===currentCat&&(!q||(p.title+" "+p.body+" "+(p.profiles?.nickname||"")).toLowerCase().includes(q)));
- arr.sort((a,b)=>Number(!!b.is_pinned)-Number(!!a.is_pinned) || (sort==="hot" ? ((recommendationCount(b)*3+(b.comments?.[0]?.count||0))-(recommendationCount(a)*3+(a.comments?.[0]?.count||0))) : (new Date(b.created_at)-new Date(a.created_at))));
+ arr.sort((a,b)=>Number(!!b.is_pinned)-Number(!!a.is_pinned) || (sort==="hot" ? (((b.likes?.[0]?.count||0)*3+(b.comments?.[0]?.count||0))-((a.likes?.[0]?.count||0)*3+(a.comments?.[0]?.count||0))) : (new Date(b.created_at)-new Date(a.created_at))));
  const totalPages=Math.max(1,Math.ceil(arr.length/POSTS_PER_PAGE));
  currentPage=Math.min(currentPage,totalPages);
  const start=(currentPage-1)*POSTS_PER_PAGE;
@@ -280,10 +279,9 @@ function render(){
   $("feed").innerHTML='<div class="empty">아직 글이 없거나 검색 결과가 없어요.<br><br><button class="primary" id="emptyWrite">글 작성하기</button></div>';
   const b=$("emptyWrite");if(b)b.onclick=openWriter;
  }else{
-  $("feed").innerHTML=pageItems.map(p=>`<article class="post" data-post-open="${p.id}" tabindex="0" role="button" aria-label="게시글 열기: ${esc(p.title)}"><div class="meta"><span class="avatar">${initials(p.profiles?.nickname||"회원")}</span><b>${esc(p.profiles?.nickname||"탈퇴한 회원")}</b><span class="role-badge ${p.profiles?.role==="admin"?"admin":(["moderator","staff","mod"].includes(p.profiles?.role)?"moderator":"")}">${p.profiles?.role==="admin"?"관리자":(["moderator","staff","mod"].includes(p.profiles?.role)?"어드민":"사용자")}</span><span>·</span><span>${timeAgo(p.created_at)}</span><span class="tag">${esc(p.category)}</span>${p.is_pinned?'<span class="tag">📌 고정</span>':''}${p.updated_at&&p.updated_at!==p.created_at?'<span>수정됨</span>':''}</div><h2>${esc(p.title)}</h2><div class="postbody">${linkify(p.body.length>240?p.body.slice(0,240)+"…":p.body)}</div>${p.image_url?`<img class="postimg" loading="lazy" src="${esc(p.image_url)}" alt="첨부 이미지">`:""}<div class="actions"><button class="${likedIds.has(p.id)?"liked":""}" data-like="${p.id}">▲ 추천 ${recommendationCount(p)}</button>${profile?.role==="admin"?`<button data-edit-recommendation="${p.id}">추천 수 수정</button>`:""}<button data-open="${p.id}">댓글 ${p.comments?.[0]?.count||0}</button><button data-report="${p.id}">신고</button>${user&&(user.id===p.user_id||profile?.role==="admin")&&(p.category!=="공지"||profile?.role==="admin")?`<button data-edit="${p.id}">수정</button><button class="danger" data-delete="${p.id}">삭제</button>`:""}${profile?.role==="admin"&&p.category==="공지"?`<button data-pin="${p.id}">${p.is_pinned?"📌 고정 해제":"📌 상단 고정"}</button>`:""}</div></article>`).join("");
+  $("feed").innerHTML=pageItems.map(p=>`<article class="post" data-post-open="${p.id}" tabindex="0" role="button" aria-label="게시글 열기: ${esc(p.title)}"><div class="meta"><span class="avatar">${initials(p.profiles?.nickname||"회원")}</span><b>${esc(p.profiles?.nickname||"탈퇴한 회원")}</b><span class="role-badge ${p.profiles?.role==="admin"?"admin":(["moderator","staff","mod"].includes(p.profiles?.role)?"moderator":"")}">${p.profiles?.role==="admin"?"관리자":(["moderator","staff","mod"].includes(p.profiles?.role)?"어드민":"사용자")}</span><span>·</span><span>${timeAgo(p.created_at)}</span><span class="tag">${esc(p.category)}</span>${p.is_pinned?'<span class="tag">📌 고정</span>':''}${p.updated_at&&p.updated_at!==p.created_at?'<span>수정됨</span>':''}</div><h2>${esc(p.title)}</h2><div class="postbody">${linkify(p.body.length>240?p.body.slice(0,240)+"…":p.body)}</div>${p.image_url?`<img class="postimg" loading="lazy" src="${esc(p.image_url)}" alt="첨부 이미지">`:""}<div class="actions"><button class="${likedIds.has(p.id)?"liked":""}" data-like="${p.id}">▲ 추천 ${p.likes?.[0]?.count||0}</button><button data-open="${p.id}">댓글 ${p.comments?.[0]?.count||0}</button><button data-report="${p.id}">신고</button>${user&&(user.id===p.user_id||profile?.role==="admin")&&(p.category!=="공지"||profile?.role==="admin")?`<button data-edit="${p.id}">수정</button><button class="danger" data-delete="${p.id}">삭제</button>`:""}${profile?.role==="admin"&&p.category==="공지"?`<button data-pin="${p.id}">${p.is_pinned?"📌 고정 해제":"📌 상단 고정"}</button>`:""}</div></article>`).join("");
   $("feed").querySelectorAll("[data-post-open]").forEach(card=>{card.style.cursor="pointer";card.onclick=e=>{if(e.target.closest("button,a,input,textarea,select"))return;openDetail(card.dataset.postOpen)};card.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&!e.target.closest("button,a,input,textarea,select")){e.preventDefault();openDetail(card.dataset.postOpen)}}});
   $("feed").querySelectorAll("[data-like]").forEach(b=>b.onclick=()=>toggleLike(b.dataset.like));
-  $("feed").querySelectorAll("[data-edit-recommendation]").forEach(b=>b.onclick=e=>{e.stopPropagation();editRecommendationCount(b.dataset.editRecommendation)});
   $("feed").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));
   $("feed").querySelectorAll("[data-report]").forEach(b=>b.onclick=()=>report(b.dataset.report));
   $("feed").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editPost(b.dataset.edit));
@@ -372,18 +370,6 @@ async function toggleLike(id){
  if(r.error)toast("추천 처리 실패: "+r.error.message);else await refresh();
 }
 
-async function editRecommendationCount(id){
- if(profile?.role!=="admin"){toast("관리자만 추천 수를 수정할 수 있어요.");return}
- const p=posts.find(x=>x.id===id);if(!p)return;
- const value=prompt("설정할 추천 수를 입력하세요. 0 이상의 정수만 가능합니다.",String(recommendationCount(p)));
- if(value===null)return;
- const countText=value.trim();
- if(!/^\d+$/.test(countText)||!Number.isSafeInteger(Number(countText))){toast("추천 수는 0 이상의 정수로 입력해 주세요.");return}
- const {error}=await db.rpc("admin_set_recommendation_count",{p_post_id:id,p_count:Number(countText)});
- if(error){toast("추천 수 수정 실패: "+error.message+" (Supabase SQL 정책/함수를 확인해 주세요.)");return}
- toast("추천 수를 수정했어요.");await refresh();
-}
-
 async function openDetail(id){
  const p=posts.find(x=>x.id===id);if(!p)return;
  openedPost=p;
@@ -398,10 +384,9 @@ async function openDetail(id){
  if(error){toast("게시글은 열었지만 댓글을 불러오지 못했어요: "+error.message)}
  const safeComments=error?[]:(comments||[]);
  const renderComment=c=>`<div class="comment"><div class="meta"><b>${esc(c.profiles?.nickname||"회원")}</b><span>· ${timeAgo(c.created_at)}</span></div><p>${linkify(c.body)}</p><div class="actions"><button data-reply="${c.id}">답글</button>${user&&(user.id===c.user_id||profile?.role==="admin")?`<button class="danger" data-delcomment="${c.id}">삭제</button>`:""}</div>${safeComments.filter(x=>x.parent_id===c.id).map(x=>`<div class="commentchildren">${renderComment(x)}</div>`).join("")}</div>`;
- $("detailContent").innerHTML=`<div class="meta"><span class="tag">${esc(p.category)}</span><b>${esc(p.profiles?.nickname||"회원")}</b><span>${timeAgo(p.created_at)}</span></div><h2>${esc(p.title)}</h2><p class="postbody">${linkify(p.body)}</p>${p.image_url?`<img class="postimg" src="${esc(p.image_url)}" alt="첨부 이미지">`:""}<div class="actions"><button data-detail-like="${p.id}">▲ 추천 ${recommendationCount(p)}</button>${profile?.role==="admin"?`<button data-detail-edit-recommendation="${p.id}">추천 수 수정</button>`:""}<button data-detail-report="${p.id}">신고</button></div><div class="comments"><h3>댓글 ${safeComments.length}</h3><div class="row"><input id="commentInput" type="text" name="community-comment-entry" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" maxlength="3000" placeholder="댓글을 입력하세요"><button class="primary" id="sendComment">등록</button></div><div id="commentList">${safeComments.filter(c=>!c.parent_id).map(c=>renderComment(c)).join("")||'<p class="small">첫 댓글을 남겨보세요.</p>'}</div></div>`;
+ $("detailContent").innerHTML=`<div class="meta"><span class="tag">${esc(p.category)}</span><b>${esc(p.profiles?.nickname||"회원")}</b><span>${timeAgo(p.created_at)}</span></div><h2>${esc(p.title)}</h2><p class="postbody">${linkify(p.body)}</p>${p.image_url?`<img class="postimg" src="${esc(p.image_url)}" alt="첨부 이미지">`:""}<div class="actions"><button data-detail-like="${p.id}">▲ 추천 ${p.likes?.[0]?.count||0}</button><button data-detail-report="${p.id}">신고</button></div><div class="comments"><h3>댓글 ${safeComments.length}</h3><div class="row"><input id="commentInput" type="text" name="community-comment-entry" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" data-form-type="other" maxlength="3000" placeholder="댓글을 입력하세요"><button class="primary" id="sendComment">등록</button></div><div id="commentList">${safeComments.filter(c=>!c.parent_id).map(c=>renderComment(c)).join("")||'<p class="small">첫 댓글을 남겨보세요.</p>'}</div></div>`;
  $("sendComment").onclick=()=>sendComment(id,null);
  $("detailContent").querySelector("[data-detail-like]").onclick=()=>toggleLike(id);
- const editRecommendationButton=$("detailContent").querySelector("[data-detail-edit-recommendation]");if(editRecommendationButton)editRecommendationButton.onclick=()=>editRecommendationCount(id);
  $("detailContent").querySelector("[data-detail-report]").onclick=()=>report(id);
  $("detailContent").querySelectorAll("[data-reply]").forEach(b=>b.onclick=()=>{const inp=$("commentInput");inp.placeholder="답글 작성 중…";inp.dataset.parent=b.dataset.reply;inp.focus()});
  $("detailContent").querySelectorAll("[data-delcomment]").forEach(b=>b.onclick=async()=>{if(confirm("댓글을 삭제할까요?")){const r=await db.from("comments").delete().eq("id",b.dataset.delcomment);if(r.error)toast(r.error.message);else openDetail(id)}});
@@ -432,12 +417,32 @@ async function searchAdminMembers(){
   el.innerHTML='<p class="small">회원 목록을 불러오지 못했어요: '+esc(error.message)+'<br>Supabase SQL Editor에서 admin-email-function.sql의 SQL을 실행했는지 확인해 주세요.</p>';
   return;
  }
+ const memberIds=(data||[]).map(m=>m.id);
+ let pointMap={};
+ if(memberIds.length){
+  const {data:pointRows}=await db.rpc("admin_get_member_points",{p_user_ids:memberIds});
+  (pointRows||[]).forEach(p=>pointMap[p.user_id]=Number(p.points)||0);
+ }
  el.innerHTML=(data||[]).map(m=>{
   const protectedUser=m.id===user?.id||m.role==="admin";
   const status=m.is_suspended?'<span class="tag" style="color:var(--danger)">정지됨</span>':'<span class="tag">정상</span>';
+  const pointAction=protectedUser?'<span class="small">포인트 변경 보호 계정</span>':`<button data-points-user="${esc(m.id)}" data-points-name="${esc(m.nickname||"회원")}">포인트 지급/차감</button>`;
   const action=protectedUser?'<span class="small">보호된 계정</span>':`<button class="${m.is_suspended?"primary":"danger"}" data-suspend-user="${esc(m.id)}" data-suspend-value="${m.is_suspended?"false":"true"}">${m.is_suspended?"정지 해제":"회원 정지"}</button>`;
-  return `<div class="activity-item"><div class="row" style="align-items:center"><div style="min-width:0;overflow-wrap:anywhere"><b>${esc(m.nickname||"이름 없는 회원")}</b> <span class="role-badge ${m.role==="admin"?"admin":""}">${m.role==="admin"?"관리자":"회원"}</span><div class="small">이메일: ${esc(m.email||"이메일 없음")}</div><div class="small">${status}</div></div>${action}</div></div>`;
+  return `<div class="activity-item"><div class="row" style="align-items:center"><div style="min-width:0;overflow-wrap:anywhere"><b>${esc(m.nickname||"이름 없는 회원")}</b> <span class="role-badge ${m.role==="admin"?"admin":""}">${m.role==="admin"?"관리자":"회원"}</span><div class="small">이메일: ${esc(m.email||"이메일 없음")}</div><div class="small">보유 포인트: ${(pointMap[m.id]||0).toLocaleString("ko-KR")} P</div><div class="small">${status}</div><div class="row" style="margin-top:8px">${pointAction}${action}</div></div></div></div>`;
  }).join("")||'<div class="empty">검색된 회원이 없어요.</div>';
+ el.querySelectorAll("[data-points-user]").forEach(b=>b.onclick=async()=>{
+  const raw=prompt(`${b.dataset.pointsName} 회원에게 지급할 포인트는 양수, 차감할 포인트는 음수로 입력하세요.
+예: 100 지급 / -50 차감`);
+  if(raw===null)return;
+  const delta=Number(raw.trim());
+  if(!Number.isSafeInteger(delta)||delta===0){toast("0이 아닌 정수를 입력해 주세요.");return}
+  if(!confirm(`${delta>0?delta+"P 지급":Math.abs(delta)+"P 차감"}할까요?`))return;
+  b.disabled=true;
+  const {error}=await db.rpc("admin_adjust_member_points",{p_user_id:b.dataset.pointsUser,p_delta:delta});
+  if(error){toast("포인트 변경 실패: "+error.message);b.disabled=false;return}
+  toast("포인트를 변경했어요.");
+  await searchAdminMembers();
+ });
  el.querySelectorAll("[data-suspend-user]").forEach(b=>b.onclick=async()=>{
   const suspend=b.dataset.suspendValue==="true";
   if(!confirm(suspend?"이 회원을 정지할까요?":"이 회원의 정지를 해제할까요?"))return;
@@ -601,7 +606,8 @@ async function sendChatMessage(){
 
 function openProfile(){
  if(!user){show("authModal");return}
- $("profileNick").value=profile?.nickname||"";
+ $("profileNickname").textContent=profile?.nickname||"회원";
+ $("profilePoints").textContent=(Number(profile?.points)||0).toLocaleString("ko-KR")+" P";
  $("profileEmail").textContent=user?.email||"";
  $("myActivity").replaceChildren();
  show("profileModal");
@@ -639,14 +645,6 @@ $("signupSubmit").onclick=async()=>{
  if(!nickname){toast("가입할 닉네임을 입력해 주세요.");return}
  const {data,error}=await db.auth.signUp({email:$("email").value.trim(),password:$("password").value,options:{data:{nickname}}});
  if(error)toast(error.message);else{hide("authModal");toast(data.session?"가입 완료!":"가입 요청 완료. 이메일을 확인해 주세요.");await refresh()}
-};
-$("saveProfile").onclick=async()=>{
- if(!user)return;
- const nickname=$("profileNick").value.trim();
- if(!nickname||nickname.length>24){toast("닉네임은 1~24자로 입력해 주세요.");return}
- const {error}=await db.from("profiles").update({nickname}).eq("id",user.id);
- if(error)toast("프로필 저장 실패: "+error.message);
- else{toast("프로필을 저장했어요.");await refresh();openProfile()}
 };
 $("logoutBtn").onclick=async()=>{
  await db.auth.signOut();hide("profileModal");await refresh();toast("로그아웃했어요.");
