@@ -832,18 +832,18 @@ if(db){
     <span class="sg-stat">스테이지 <b id="sgStage">1</b></span>
     <span class="sg-stat">레벨 <b id="sgLevel">1</b></span><span class="sg-stat">XP <b id="sgXp">0/30</b></span>
     <span class="sg-stat">HP <b id="sgHp">100</b>/100</span><span class="sg-stat">골드 <b id="sgGold">0</b></span>
-    <span class="sg-stat">검 <b id="sgWeapon">나무 검</b></span>
+    <span class="sg-stat">검 <b id="sgWeapon">나무 검</b></span><span class="sg-stat">온라인 <b id="sgOnline">0</b></span>
   </div>
   <canvas id="sibolGameCanvas" width="800" height="600" aria-label="게임 화면"></canvas>
   <div class="sg-controls" style="margin-top:8px">
     <div class="sg-pad" aria-label="이동 조작"><button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div>
-    <div class="sg-acts"><button id="sgAttack" class="primary">⚔️ 공격</button><button id="sgSkill1" disabled>스킬 1</button><button id="sgSkill2" disabled>스킬 2</button><button id="sgPotion">🧪 물약</button></div>
+    <div class="sg-acts"><button id="sgAttack" class="primary">⚔️ 공격</button><button id="sgSkill1" disabled>스킬 1</button><button id="sgSkill2" disabled>스킬 2</button><button id="sgDash">💨 대쉬</button><button id="sgPotion">🧪 물약</button></div>
   </div>
   <div class="sg-tabs">
     <button data-sgtab="inventory" class="active">검 보관함</button><button data-sgtab="shop">상점</button><button data-sgtab="quest">퀘스트</button><button data-sgtab="achievement">업적</button><button data-sgtab="craft">검 조합</button><button data-sgtab="enhance">검 강화</button><button data-sgtab="gacha">뽑기</button><button data-sgtab="lost">유실물</button><button data-sgtab="ranking">랭킹</button>
   </div>
   <div id="sgView" class="sg-view"></div>
-  <p class="sg-note">이동: 방향키/WASD · 공격: 스페이스 · 스킬1: 1키(Lv2) · 스킬2: 2키(Lv4) · 물약: Q. 공격은 가까운 몬스터를 자동 조준하지만 직접 눌러야 합니다. 레벨, 골드, 검, 재료는 이 기기에 저장되며, 보스를 처치하면 랭킹에 기록됩니다.</p>
+  <p class="sg-note">이동: 방향키/WASD · 공격: 스페이스 · 스킬1: 1키(Lv2) · 스킬2: 2키(Lv4) · 물약: Q · 대쉬: Shift. 공격은 가까운 몬스터를 자동 조준하지만 직접 눌러야 합니다. 레벨, 골드, 검, 재료는 이 기기에 저장되며, 보스를 처치하면 랭킹에 기록됩니다.</p>
 </section></div>
 <script>
 (()=>{
@@ -856,16 +856,17 @@ const SAVE="sibol_sword_v3_save";
 const W=800,H=600,PR=13;
 const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:29,rarity:"희귀"},moon:{name:"월광 검",atk:43,rarity:"영웅"},void:{name:"공허 검",atk:65,rarity:"전설"}};
 const STAGES=[
- {name:"초원",bg:"#101a14",grid:"#1c2e24",mobs:6,bossHp:90},
- {name:"사막",bg:"#211b10",grid:"#352b1a",mobs:7,bossHp:160},
- {name:"얼음 동굴",bg:"#0f1824",grid:"#1c2c40",mobs:8,bossHp:260}
+ {name:"초원",bg:0,mobs:6,bossHp:90},
+ {name:"사막",bg:1,mobs:7,bossHp:160},
+ {name:"얼음 동굴",bg:2,mobs:8,bossHp:260}
 ];
 const TYPES={
- normal:{r:13,speed:55,dmg:5,color:"#ff7088",hp:30,detect:125},
- fast:{r:10,speed:110,dmg:4,color:"#ffb347",hp:18,detect:160},
- ranged:{r:13,speed:40,dmg:6,color:"#6fb8ff",hp:24,detect:230},
- boss:{r:18,speed:60,dmg:12,color:"#d17cff",hp:0,detect:260}
+ normal:{r:13,speed:55,dmg:5,hp:30,detect:125},
+ fast:{r:10,speed:110,dmg:4,hp:18,detect:160},
+ ranged:{r:13,speed:40,dmg:6,hp:24,detect:230},
+ boss:{r:18,speed:60,dmg:12,hp:0,detect:260}
 };
+const SPRITE_OF={normal:"slime",fast:"imp",ranged:"mage",boss:"golem"};
 const homes=[[160,150],[630,150],[160,440],[630,440],[400,110],[400,490],[100,300],[700,300]];
 const QUEST_POOL=[
  {id:"kill10",title:"몬스터 10마리 처치",type:"kill",target:10,reward:60},
@@ -888,6 +889,7 @@ const ACHIEVEMENTS=[
  {id:"skill50",title:"기술의 달인",desc:"스킬 50회 사용",check:()=>data.skillsUsed>=50,reward:150}
 ];
 
+/* ── 저장 데이터 ── */
 const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0},tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{}});
 let data;
 try{
@@ -898,11 +900,165 @@ function save(){try{localStorage.setItem(SAVE,JSON.stringify(data))}catch{}}
 const xpNeed=()=>30+(data.level-1)*20;
 const atkNow=()=>weapons[data.weapon].atk+((data.enhance[data.weapon]||0)*5);
 
-const S={running:false,raf:0,last:0,time:0,hudAt:0,px:400,py:300,vx:0,vy:0,face:1,invuln:0,flash:0,shake:0,attackReady:0,cd1:0,cd2:0,dash:null,swing:null,ring:null,clearTimer:0,mons:[],boss:null,projs:[],parts:[],texts:[]};
+/* ── 도트 스프라이트 생성 ── */
+const OUT="#1b1322";
+const MAT={
+ skin:["#f4c6a0","#ffe3cb","#c98d66"],
+ hair:["#4a2f22","#7a5440","#2a1a12"],
+ tunic:["#4f7cff","#9ab8ff","#2d4bb3"],
+ cape:["#d6405a","#f58fa0","#8a1f36"],
+ boots:["#5a3b28","#8a5f40","#33200f"],
+ steel:["#dfe6f2","#ffffff","#8793ab"],
+ gold:["#ffd166","#fff3c4","#c48f1f"],
+ wood:["#8a5a2b","#b88750","#5a3815"],
+ slime:["#7ee89a","#d2ffdc","#2f9e5b"],
+ imp:["#ff8a5c","#ffc7a8","#b8482a"],
+ robe:["#4b3d6e","#8270b0","#2a2140"],
+ hood:["#5b4a86","#9584c8","#33284f"],
+ rock:["#8a8f9e","#cdd2dc","#474c5a"]
+};
+const WHITE=["#ffffff","#ffffff","#e4e4e4"];
+function shapeHit(t,n,x,y){
+ if(t==="E"){const[cx,cy,rx,ry]=n;return((x+0.5-cx)/rx)**2+((y+0.5-cy)/ry)**2<=1}
+ if(t==="R"){const[rx,ry,rw,rh]=n;return x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh}
+ if(t==="T"){
+  const[x1,y1,x2,y2,x3,y3]=n;const px=x+0.5,py=y+0.5;
+  const s=(ax,ay,bx,by)=>(px-bx)*(ay-by)-(ax-bx)*(py-by);
+  const d1=s(x1,y1,x2,y2),d2=s(x2,y2,x3,y3),d3=s(x3,y3,x1,y1);
+  const neg=d1<0||d2<0||d3<0,pos=d1>0||d2>0||d3>0;
+  return!(neg&&pos);
+ }
+ if(t==="L"){
+  const[x1,y1,x2,y2,th]=n;const px=x+0.5,py=y+0.5;
+  const dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy||1;
+  const u=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/L2));
+  const qx=x1+u*dx,qy=y1+u*dy;
+  return (px-qx)**2+(py-qy)**2<=th*th;
+ }
+ if(t==="P")return x===n[0]&&y===n[1];
+ return false;
+}
+/* prims: [type, material, ...numbers]. material이 "#"으로 시작하면 단색 */
+function buildSprite(w,h,prims,scale,flash,pal=MAT){
+ const g=Array.from({length:h},()=>Array(w).fill(null));
+ for(const p of prims){
+  const[type,mat,...n]=p;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(shapeHit(type,n,x,y))g[y][x]={m:mat}}
+ }
+ const at=(x,y)=>(x<0||y<0||x>=w||y>=h)?null:g[y][x];
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  const c=g[y][x];if(!c||c.m[0]==="#")continue;
+  c.tone=(!at(x,y-1)||!at(x-1,y))?0:((!at(x,y+1)||!at(x+1,y))?2:1);
+ }
+ const cv=document.createElement("canvas");cv.width=w*scale;cv.height=h*scale;
+ const c2=cv.getContext("2d");
+ const paint=(x,y,col)=>{c2.fillStyle=col;c2.fillRect(x*scale,y*scale,scale,scale)};
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  if(g[y][x])continue;
+  if(at(x-1,y)||at(x+1,y)||at(x,y-1)||at(x,y+1))paint(x,y,OUT);
+ }
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  const c=g[y][x];if(!c)continue;
+  if(c.m[0]==="#")paint(x,y,c.m);
+  else paint(x,y,flash?WHITE[c.tone]:pal[c.m][c.tone]);
+ }
+ return cv;
+}
+function playerPrims(f){
+ const run=f>=0,ph=run?f:0,op=(ph+2)%4;
+ const lean=run?1:0;            /* 달릴 때만 상체를 숙임 */
+ const KA=[[14,15.5],[12.5,16.5],[7,18],[8,18]];
+ const FA=[[15,17],[12,19],[2,21],[4,20]];
+ const AH=[[13,12],[11,13],[5,12],[7,11]];
+ const EA=[[12,14],[10,14.5],[6,13],[7,12.5]];
+ const b=run?[1,-1,1,-1][ph]:0;
+ const hipF=[10,15],hipB=[6,15];
+ let k1=KA[ph],f1=FA[ph],k2=KA[op],f2=FA[op];
+ /* 멈춤: 두 발을 엉덩이 아래에 두고 앞발만 살짝 뜸 */
+ if(!run){k1=[11.5,17.5];f1=[10.5,19];k2=[7.5,18];f2=[7,21];}
+ const HB=[[1,13],[3,13.5],[6,11],[4,12]];
+ const [hbx,hby]=run?HB[op]:[4,12];
+ const [hfx,hfy]=run?AH[ph]:[13,12];
+ const eb=run?EA[op]:[6,13], ef=run?EA[ph]:[12,14];
+ const up=4.5*lean, tor=2.5*lean;   /* 머리/상체 전진량 */
+ const tx=6+tor, hx=9.5+up, hy=5.5+1*lean;
+ return[
+  ["L","tunic",8+tor,10+b,hbx,hby+b,1.4],["P","skin",hbx,hby+b],
+  ["L","boots",hipB[0],hipB[1],k2[0],k2[1],1.6],["L","boots",k2[0],k2[1],f2[0],f2[1],1.6],
+  ["T","cape",tx,9+b,tx+3+tor,10+b,run?[2,3,2,1][ph]:2,18],
+  ["R","tunic",tx,9+b,7,6],["R","gold",tx,14+b,7,1],
+  ["E","skin",hx,hy+b,3.2,3.2],["R","hair",hx-3.5,hy-3+b,7,3],["R","hair",hx-4.5,hy-1+b,2,3],
+  ["P","#14101a",hx+2,hy+b],
+  ["L","boots",hipF[0],hipF[1],k1[0],k1[1],1.6],["L","boots",k1[0],k1[1],f1[0],f1[1],1.6],
+  ["L","tunic",10+tor+1,10+b,ef[0]+up*0.8,ef[1]+b,1.4],["L","tunic",ef[0]+up*0.8,ef[1]+b,hfx,hfy+b,1.2],["P","skin",hfx,hfy+b],
+  ["L","steel",hfx,hfy+b,hfx+2,hfy+b+7,0.6],["P","gold",hfx,hfy+b]
+ ];
+}
+const slimePrims=f=>[["E","slime",8,f?9.5:8.5,6,f?4.3:5],["R","#14101a",5,8,2,2],["R","#14101a",9,8,2,2],["P","#ffffff",5,7]];
+const impPrims=f=>[["E","imp",7,8.5,4.2,4.2],["T","imp",2,7,2,1,6,5],["T","imp",12,7,12,1,8,5],["R","imp",4,9,7,4],["P","#ffe066",6,7],["P","#ffe066",9,7],["R","imp",5,11,2,f?2:3],["R","imp",8,11,2,f?3:2],["P","imp",12,11]];
+function magePrims(f){
+ const o=f?1.6:1.2;
+ return[["T","robe",8,5,3,17,13,17],["E","robe",8,13,5,4],["E","hood",8,5,4,4],["R","#14101a",6,5,4,2],["P","#ffe066",7,5],["P","#ffe066",9,5],["R","wood",13,3,1,13],["E","#9ff0ff",13.5,2.5,o,o],["R","robe",3,10,2,4]];
+}
+function golemPrims(f){
+ const eye=f?"#ffd27a":"#ff7a3d",sh=f?1:0;
+ return[
+  ["R","rock",6,10,20,18],["R","rock",9,2,14,10],
+  ["E","rock",4,14+sh,4,5],["E","rock",28,14+sh,4,5],
+  ["R","rock",7,26,7,5],["R","rock",18,26,7,5],
+  ["R","#3a3f4c",14,14,1,7],["R","#3a3f4c",17,19,5,1],["R","#3a3f4c",9,22,3,1],
+  ["R",eye,11,5,4,2],["R",eye,18,5,4,2],
+  ["P","#5fbf5a",9,11],["P","#5fbf5a",22,8],["P","#5fbf5a",24,17],["P","#5fbf5a",8,24]
+ ];
+}
+const SPR={};
+function prerenderSprites(){
+ const mk=(w,h,fn,n,sc)=>({
+  frames:Array.from({length:n},(_,i)=>buildSprite(w,h,fn(i),sc,false)),
+  flash:Array.from({length:n},(_,i)=>buildSprite(w,h,fn(i),sc,true))
+ });
+ SPR.player=mk(16,22,i=>playerPrims(i===4?-1:i),5,3);
+ SPR.slime=mk(16,14,slimePrims,2,3);
+ SPR.imp=mk(14,14,impPrims,2,3);
+ SPR.mage=mk(16,18,magePrims,2,3);
+ SPR.golem=mk(32,32,golemPrims,2,3);
+ SPR.orb=mk(7,7,()=>[["E","#9ff0ff",3,3,3,3],["P","#ffffff",3,3]],1,3);
+}
+
+/* ── 배경 (스테이지별 타일 맵) ── */
+const BG=[];
+function rng(seed){let s=seed;return()=>(s=(s*16807)%2147483647)/2147483647}
+function prerenderBG(){
+ const themes=[
+  {base:"#2c5a34",dark:"#22472a",light:"#3f7a46",accent:"#6fbf5a",accent2:"#e8d05a",wall:"#3b2a1d",kind:"grass"},
+  {base:"#c9a35d",dark:"#a7833f",light:"#e2c27e",accent:"#8a6a33",accent2:"#f2e0a4",wall:"#6b4a2a",kind:"sand"},
+  {base:"#3b5c7a",dark:"#2b4661",light:"#5d86a8",accent:"#bfe6ff",accent2:"#ffffff",wall:"#263443",kind:"ice"}
+ ];
+ themes.forEach((th,idx)=>{
+  const cv=document.createElement("canvas");cv.width=200;cv.height=150;
+  const c=cv.getContext("2d");
+  const r=rng(idx*7919+13);
+  c.fillStyle=th.base;c.fillRect(0,0,200,150);
+  for(let i=0;i<900;i++){const x=Math.floor(r()*200),y=Math.floor(r()*150);c.fillStyle=r()<0.5?th.dark:th.light;c.fillRect(x,y,1,1)}
+  for(let i=0;i<70;i++){
+   const x=Math.floor(r()*196),y=Math.floor(r()*146);
+   c.fillStyle=r()<0.6?th.accent:th.accent2;
+   if(th.kind==="grass"){c.fillRect(x,y,1,3);c.fillRect(x+1,y+1,1,2)}
+   else if(th.kind==="sand"){c.fillRect(x,y,3,1)}
+   else{c.beginPath();c.moveTo(x,y);c.lineTo(x+2,y+3);c.lineTo(x-2,y+3);c.closePath();c.fill()}
+  }
+  c.fillStyle=th.wall;
+  c.fillRect(0,0,200,2);c.fillRect(0,148,200,2);c.fillRect(0,0,2,150);c.fillRect(198,0,2,150);
+  BG[idx]=cv;
+ });
+}
+
+/* ── 상태 ── */
+const S={running:false,raf:0,last:0,time:0,hudAt:0,px:400,py:300,vx:0,vy:0,face:1,invuln:0,flash:0,shake:0,attackReady:0,cd1:0,cd2:0,dash:null,swing:null,ring:null,clearTimer:0,roll:null,rollCd:0,after:[],afterAcc:0,netT:0,mons:[],boss:null,bossActive:false,projs:[],parts:[],texts:[]};
 let tab="inventory",rankRows=null,profileName=null,toastTimer=0,muted=false,audioCtx=null;
 const keys={};
 
-function toast(t){const el=$("sgToast");el.textContent=t;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2000)}
+function toast(t){const el=$("sgToast");el.textContent=t;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200)}
 
 /* ── 퀘스트 ── */
 const todayStr=()=>new Date().toLocaleDateString("sv-SE");
@@ -916,25 +1072,36 @@ function ensureQuests(){
 function track(type,n=1){
  ensureQuests();let changed=false;
  for(const q of data.quests.items){if(q.type===type&&!q.claimed&&q.progress<q.target){q.progress=Math.min(q.target,q.progress+n);changed=true}}
- if(changed)renderView();
+ if(changed)renderIfOpen();
 }
 
-/* ── 스테이지 ── */
+/* ── 스테이지 / 몬스터 ── */
 function stageInfo(){
  const idx=(data.stage-1)%STAGES.length,loop=Math.floor((data.stage-1)/STAGES.length);
- return{...STAGES[idx],hpMul:1+idx*0.6+loop*0.8,loopMul:1+loop*0.8};
+ return{...STAGES[idx],idx,hpMul:1+idx*0.6+loop*0.8,loopMul:1+loop*0.8};
 }
 function makeMon(kind,x,y,hp){
  return{type:kind,hx:x,hy:y,x,y,hp,max:hp,r:TYPES[kind].r,alive:true,respawn:0,hit:0,kx:0,ky:0,shootCd:1+Math.random()*1.5};
 }
+/* 보스는 스테이지의 모든 몬스터를 동시에 처치해야 등장합니다. */
 function spawnStage(){
- const st=stageInfo();S.mons=[];S.projs=[];
+ const st=stageInfo();
+ S.mons=[];S.projs=[];S.bossActive=false;
  for(let i=0;i<st.mobs;i++){
   const kind=i%3===1?"fast":i%3===2?"ranged":"normal";
   const h=homes[i%homes.length];
   S.mons.push(makeMon(kind,h[0],h[1],Math.round(TYPES[kind].hp*st.hpMul)));
  }
  S.boss=makeMon("boss",400,200,Math.round(st.bossHp*st.loopMul));
+ S.boss.alive=false;
+}
+function checkBossUnlock(){
+ if(S.bossActive||!S.mons.every(m=>!m.alive))return;
+ S.bossActive=true;
+ for(const m of S.mons)m.respawn=0;
+ S.boss.alive=true;S.boss.hp=S.boss.max;S.boss.x=400;S.boss.y=200;
+ burst(400,200,"#d17cff",24);
+ toast("모든 몬스터를 처치했습니다! 보스가 등장합니다.");
 }
 const allTargets=()=>S.boss?[...S.mons,S.boss]:[...S.mons];
 
@@ -974,8 +1141,8 @@ function hitMon(m,dmg,crit){
  if(!m.alive)return;
  m.hp-=dmg;m.hit=0.12;
  const a=Math.atan2(m.y-S.py,m.x-S.px);m.kx=Math.cos(a)*160;m.ky=Math.sin(a)*160;
- addText(m.x,m.y-m.r-22,String(dmg),crit?"#ffd166":"#ffffff");
- sfx("hit");burst(m.x,m.y,TYPES[m.type].color,4);
+ addText(m.x,m.y-m.r-30,String(dmg),crit?"#ffd166":"#ffffff");
+ sfx("hit");burst(m.x,m.y,TYPES[m.type].color||"#ffffff",4);
  if(m.hp<=0)killMon(m);
 }
 function levelCheck(){
@@ -989,12 +1156,12 @@ function levelCheck(){
 }
 function killMon(m){
  m.alive=false;m.hit=0;
- burst(m.x,m.y,TYPES[m.type].color,16);sfx("kill");
  const boss=m.type==="boss";
- if(!boss)m.respawn=S.time+10;
+ burst(m.x,m.y,"#ffd166",16);sfx("kill");
+ if(!boss&&!S.bossActive)m.respawn=S.time+10;
  data.kills++;track("kill");
  const gold=boss?35:8;data.gold+=gold;data.xp+=boss?25:10;
- addText(m.x,m.y-12,"+"+gold+"G","#ffd166");
+ addText(m.x,m.y-14,"+"+gold+"G","#ffd166");
  const drops=[];
  if(Math.random()<0.2){data.mats.iron++;drops.push("철 광석")}
  if(Math.random()<0.08){data.mats.core++;drops.push("몬스터 핵")}
@@ -1003,13 +1170,15 @@ function killMon(m){
  if(drops.length){
   data.lootLog.unshift({time:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),monster:boss?"보스":"몬스터",drops:drops.join(", ")});
   data.lootLog=data.lootLog.slice(0,30);
-  addText(m.x,m.y-34,drops.join(" +"),"#6ee7b7");
+  addText(m.x,m.y-38,drops.join(" +"),"#6ee7b7");
  }
  if(boss){
   data.bossKills++;track("boss");
   S.clearTimer=2.5;
   toast("보스 처치! 잠시 후 다음 스테이지로 이동합니다.");
   submitScore();
+ }else{
+  checkBossUnlock();
  }
  levelCheck();save();
 }
@@ -1019,6 +1188,7 @@ function attack(){
  const t=nearestTarget(55);
  const ang=t?Math.atan2(t.y-S.py,t.x-S.px):(S.face>0?0:Math.PI);
  S.swing={t:0,dur:0.18,ang};
+ if(net)net.ch.send({type:"broadcast",event:"swing",payload:{id:net.id,ang}});
  if(t){const crit=Math.random()<0.1;hitMon(t,atkNow()*(crit?2:1),crit)}
 }
 function useSkill1(){
@@ -1047,13 +1217,13 @@ function potion(){
  if(data.hp>=100){toast("HP가 이미 가득해요.");return}
  data.potions--;data.potionsUsed++;
  data.hp=Math.min(100,data.hp+45);
- addText(S.px,S.py-26,"+45","#6ee7b7");sfx("heal");
+ addText(S.px,S.py-40,"+45","#6ee7b7");sfx("heal");
  track("potion");save();
 }
 function hurt(n){
  if(S.invuln>0||data.hp<=0)return;
  data.hp-=n;S.invuln=0.6;S.flash=0.2;S.shake=0.3;
- addText(S.px,S.py-24,"-"+n,"#ff657a");sfx("hurt");
+ addText(S.px,S.py-40,"-"+n,"#ff657a");sfx("hurt");
  if(data.hp<=0){
   data.gold=Math.floor(data.gold/2);data.hp=100;
   S.px=400;S.py=300;S.vx=0;S.vy=0;S.dash=null;S.invuln=2;
@@ -1093,7 +1263,10 @@ function update(dt){
  S.invuln=Math.max(0,S.invuln-dt);
  S.flash=Math.max(0,S.flash-dt);
  S.shake=Math.max(0,S.shake-dt*1.5);
- S.cd1=Math.max(0,S.cd1-dt);S.cd2=Math.max(0,S.cd2-dt);
+ S.cd1=Math.max(0,S.cd1-dt);S.cd2=Math.max(0,S.cd2-dt);S.rollCd=Math.max(0,S.rollCd-dt);
+ for(const a of S.after)a.t-=dt;
+ S.after=S.after.filter(a=>a.t>0);
+ netTick(dt);
  if(S.swing){S.swing.t+=dt;if(S.swing.t>=S.swing.dur)S.swing=null}
  if(S.ring){S.ring.t+=dt;if(S.ring.t>0.35)S.ring=null}
  for(const p of S.parts){
@@ -1116,7 +1289,14 @@ function update(dt){
  if(keys.ArrowUp||keys.w)iy--;
  if(keys.ArrowDown||keys.s)iy++;
  const il=Math.hypot(ix,iy)||1;
- if(S.dash){
+ if(S.roll){
+  S.roll.t-=dt;
+  S.px+=S.roll.vx*dt;S.py+=S.roll.vy*dt;
+  S.afterAcc+=dt;
+  if(S.afterAcc>0.03){S.afterAcc=0;S.after.push({x:S.px,y:S.py,face:S.face,t:0.25})}
+  S.invuln=Math.max(S.invuln,0.05);
+  if(S.roll.t<=0){S.roll=null;S.vx=0;S.vy=0}
+ }else if(S.dash){
   S.dash.t-=dt;
   S.px+=S.dash.vx*dt;S.py+=S.dash.vy*dt;
   for(const m of allTargets()){
@@ -1134,6 +1314,7 @@ function update(dt){
  S.px=clamp(S.px,25,W-25);S.py=clamp(S.py,25,H-25);
  if(Math.abs(S.vx)>10)S.face=Math.sign(S.vx);
  for(const m of allTargets())updateMon(m,dt);
+ updateRemotes(dt);
  for(const p of S.projs){
   p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
   if(Math.hypot(p.x-S.px,p.y-S.py)<PR+5){hurt(p.dmg);p.t=0}
@@ -1142,42 +1323,44 @@ function update(dt){
 }
 
 /* ── 그리기 ── */
+function drawSprite(sp,frame,flash,x,y,flip,center){
+ const list=flash?sp.flash:sp.frames;
+ const img=list[frame%list.length];
+ const w=img.width,h=img.height;
+ ctx.save();
+ ctx.translate(x,y);
+ if(flip<0)ctx.scale(-1,1);
+ if(center)ctx.drawImage(img,-w/2,-h/2);
+ else ctx.drawImage(img,-w/2,-h*0.75);
+ ctx.restore();
+ return h;
+}
+function shadowAt(x,y,rx,ry){
+ ctx.fillStyle="rgba(0,0,0,0.3)";
+ ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
+}
 function drawMon(m){
  if(!m.alive)return;
- const T=TYPES[m.type];
- ctx.fillStyle=m.hit>0?"#ffffff":T.color;
- ctx.shadowColor=T.color;ctx.shadowBlur=m.type==="boss"?18:8;
- const a=Math.atan2(S.py-m.y,S.px-m.x);
- ctx.beginPath();
- if(m.type==="fast"){
-  ctx.moveTo(m.x+Math.cos(a)*m.r*1.3,m.y+Math.sin(a)*m.r*1.3);
-  ctx.lineTo(m.x+Math.cos(a+2.4)*m.r,m.y+Math.sin(a+2.4)*m.r);
-  ctx.lineTo(m.x+Math.cos(a-2.4)*m.r,m.y+Math.sin(a-2.4)*m.r);
- }else if(m.type==="ranged"){
-  ctx.moveTo(m.x,m.y-m.r);ctx.lineTo(m.x+m.r,m.y);ctx.lineTo(m.x,m.y+m.r);ctx.lineTo(m.x-m.r,m.y);
- }else{
-  ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
- }
- ctx.closePath();ctx.fill();ctx.shadowBlur=0;
- const bw=m.type==="boss"?50:34;
- ctx.fillStyle="#111";ctx.fillRect(m.x-bw/2,m.y-m.r-10,bw,4);
- ctx.fillStyle="#75e6a7";ctx.fillRect(m.x-bw/2,m.y-m.r-10,bw*Math.max(0,m.hp/m.max),4);
+ const sp=SPR[SPRITE_OF[m.type]];
+ const frame=Math.floor(S.time*(m.type==="boss"?2:4)+m.hx*0.1)%2;
+ const flip=S.px<m.x?-1:1;
+ shadowAt(m.x,m.y+m.r*1.1,m.r*1.1,m.r*0.45);
+ const h=drawSprite(sp,frame,m.hit>0,m.x,m.y,flip,false);
+ const bw=m.type==="boss"?56:34;
+ const top=m.y-h*0.75-10;
+ ctx.fillStyle="#111";ctx.fillRect(m.x-bw/2,top,bw,4);
+ ctx.fillStyle="#75e6a7";ctx.fillRect(m.x-bw/2,top,bw*Math.max(0,m.hp/m.max),4);
  if(m.type==="boss"){
-  ctx.fillStyle="#ffffff";ctx.font="bold 11px system-ui";ctx.textAlign="center";
-  ctx.fillText("보스",m.x,m.y-m.r-16);ctx.textAlign="left";
+  ctx.fillStyle="#ffffff";ctx.font="bold 12px system-ui";ctx.textAlign="center";
+  ctx.fillText("보스",m.x,top-4);ctx.textAlign="left";
  }
 }
 function draw(){
  const st=stageInfo();
  ctx.save();
  if(S.shake>0)ctx.translate((Math.random()-0.5)*S.shake*14,(Math.random()-0.5)*S.shake*14);
- ctx.fillStyle=st.bg;ctx.fillRect(-20,-20,W+40,H+40);
- ctx.strokeStyle=st.grid;ctx.lineWidth=1;
- ctx.beginPath();
- for(let x=0;x<=W;x+=40){ctx.moveTo(x+0.5,0);ctx.lineTo(x+0.5,H)}
- for(let y=0;y<=H;y+=40){ctx.moveTo(0,y+0.5);ctx.lineTo(W,y+0.5)}
- ctx.stroke();
- ctx.strokeStyle="#6556a5";ctx.lineWidth=4;ctx.strokeRect(8,8,W-16,H-16);
+ ctx.imageSmoothingEnabled=false;
+ ctx.drawImage(BG[st.idx],0,0,W,H);
  if(S.ring){
   const p=S.ring.t/0.35,e=1-Math.pow(1-p,3);
   ctx.globalAlpha=1-p;ctx.strokeStyle="#8b7cff";ctx.lineWidth=6*(1-p)+1;
@@ -1185,11 +1368,13 @@ function draw(){
   ctx.globalAlpha=1;
  }
  for(const m of allTargets())drawMon(m);
+ for(const a of S.after){ctx.globalAlpha=Math.max(0,a.t/0.25)*0.45;drawSprite(SPR.player,1,false,a.x,a.y,a.face<0?-1:1,false)}
+ ctx.globalAlpha=1;
+ drawRemotes();
  for(const p of S.projs){
-  ctx.fillStyle="#6fb8ff";ctx.shadowColor="#6fb8ff";ctx.shadowBlur=10;
-  ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill();
+  shadowAt(p.x,p.y+3,4,2);
+  drawSprite(SPR.orb,0,false,p.x,p.y,1,true);
  }
- ctx.shadowBlur=0;
  const tgt=nearestTarget(180);
  if(tgt){
   ctx.strokeStyle="#a99cff88";ctx.setLineDash([5,5]);
@@ -1197,25 +1382,26 @@ function draw(){
   ctx.setLineDash([]);
  }
  const blink=S.invuln>0&&Math.floor(S.time*16)%2===0;
- ctx.globalAlpha=blink?0.35:1;
- ctx.fillStyle=S.flash>0?"#ffffff":"#9a8cff";
- ctx.shadowColor="#8b7cff";ctx.shadowBlur=14;
- ctx.beginPath();ctx.arc(S.px,S.py,PR,0,Math.PI*2);ctx.fill();
- ctx.shadowBlur=0;
- ctx.fillStyle="#27203f";ctx.beginPath();ctx.arc(S.px+S.face*4,S.py-4,3,0,Math.PI*2);ctx.fill();
- ctx.globalAlpha=1;
+ shadowAt(S.px,S.py+PR*0.9,PR*1.1,PR*0.45);
+ if(!blink){
+  const moving=Math.abs(S.vx)+Math.abs(S.vy)>30;
+  const pf=S.roll?2:(moving?Math.floor(S.time*8)%4:4);
+  drawSprite(SPR.player,pf,S.flash>0,S.px,S.py,S.face<0?-1:1,false);
+ }
  if(S.swing){
   const p=S.swing.t/S.swing.dur,e=1-Math.pow(1-p,3),a=S.swing.ang+(-0.9+1.8*e);
-  ctx.strokeStyle="rgba(238,231,255,"+(1-p*0.8)+")";ctx.lineWidth=5*(1-p)+2;
-  ctx.beginPath();ctx.arc(S.px,S.py,30,a-0.5,a+0.5);ctx.stroke();
+  ctx.strokeStyle="rgba(255,255,255,"+(1-p*0.8)+")";ctx.lineWidth=4*(1-p)+2;
+  ctx.beginPath();ctx.arc(S.px,S.py,36,a-0.5,a+0.5);ctx.stroke();
  }
  for(const p of S.parts){
-  ctx.globalAlpha=Math.max(0,p.t/0.5);ctx.fillStyle=p.color;ctx.fillRect(p.x-2,p.y-2,4,4);
+  ctx.globalAlpha=Math.max(0,p.t/0.5);ctx.fillStyle=p.color;ctx.fillRect(Math.round(p.x)-2,Math.round(p.y)-2,4,4);
  }
  ctx.globalAlpha=1;
  ctx.textAlign="center";ctx.font="bold 14px system-ui";
  for(const tx of S.texts){
-  ctx.globalAlpha=Math.max(0,tx.t/0.8);ctx.fillStyle=tx.color;ctx.fillText(tx.str,tx.x,tx.y);
+  ctx.globalAlpha=Math.max(0,tx.t/0.8);
+  ctx.fillStyle="#000000";ctx.fillText(tx.str,tx.x+1,tx.y+1);
+  ctx.fillStyle=tx.color;ctx.fillText(tx.str,tx.x,tx.y);
  }
  ctx.globalAlpha=1;ctx.textAlign="left";
  ctx.restore();
@@ -1235,6 +1421,8 @@ function hud(){
  set("sgSkill2",data.level<4?"🔒 스킬2 (Lv4)":S.cd2>0?"스킬2 "+S.cd2.toFixed(1)+"s":"스킬2 (2)");
  $("sgSkill1").disabled=data.level<2||S.cd1>0;
  $("sgSkill2").disabled=data.level<4||S.cd2>0;
+ $("sgDash").disabled=S.rollCd>0;
+ set("sgOnline",net?net.count:0);
 }
 
 /* ── 탭 화면 ── */
@@ -1354,7 +1542,7 @@ async function submitScore(){
  }catch{}
 }
 
-/* ── 입장 / 퇴장 ── */
+/* ── 루프 / 입장 / 퇴장 ── */
 function loop(now){
  if(!S.running)return;
  const dt=Math.min(0.033,Math.max(0,(now-S.last)/1000));
@@ -1365,12 +1553,13 @@ function loop(now){
 }
 function enter(){
  if(S.running)return;
- S.running=true;
+ S.running=true;netConnect();
  overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");
  ensureAudio();
  const dpr=Math.min(2,window.devicePixelRatio||1);
  canvas.width=W*dpr;canvas.height=H*dpr;
  ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.imageSmoothingEnabled=false;
  ensureQuests();
  if(data.hp<=0)data.hp=100;
  Object.keys(keys).forEach(k=>keys[k]=false);
@@ -1384,10 +1573,110 @@ function exit(){
  overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");
  Object.keys(keys).forEach(k=>keys[k]=false);
  S.vx=0;S.vy=0;S.dash=null;
- save();submitScore();
+ save();submitScore();netLeave();
 }
 
-/* ── 연결 ── */
+/* ── 대쉬 (Shift / 대쉬 버튼) ── */
+function dashMove(){
+ if(!S.running||data.hp<=0||S.roll||S.rollCd>0)return;
+ let ix=0,iy=0;
+ if(keys.ArrowLeft||keys.a)ix--;
+ if(keys.ArrowRight||keys.d)ix++;
+ if(keys.ArrowUp||keys.w)iy--;
+ if(keys.ArrowDown||keys.s)iy++;
+ let dx=ix,dy=iy;const l=Math.hypot(dx,dy);
+ if(l>0){dx/=l;dy/=l}else{dx=S.face;dy=0}
+ S.roll={t:0.22,vx:dx*620,vy:dy*620};
+ S.rollCd=1.0;S.invuln=Math.max(S.invuln,0.25);S.afterAcc=0;
+ sfx("skill");
+}
+
+/* ── 온라인: Supabase Realtime 브로드캐스트 (같은 월드의 다른 플레이어 표시) ── */
+const TEAMS=[
+ {tunic:["#4f7cff","#9ab8ff","#2d4bb3"],cape:["#d6405a","#f58fa0","#8a1f36"]},
+ {tunic:["#3fbf7a","#9cf0c0","#22734a"],cape:["#2f6fd6","#7aa8ff","#1b3f80"]},
+ {tunic:["#a46cff","#d4bcff","#5b3aa0"],cape:["#f0b429","#ffe08a","#9a6d0b"]},
+ {tunic:["#ff8a3d","#ffc38a","#b85a1c"],cape:["#2dd4bf","#a6f4ea","#136e63"]}
+];
+const REMOTE=[];
+function prerenderRemote(){
+ TEAMS.forEach((t,i)=>{
+  const pal={...MAT,...t};
+  REMOTE[i]={frames:[0,1,2,3,4].map(f=>buildSprite(16,22,playerPrims(f===4?-1:f),3,false,pal)),flash:[]};
+ });
+}
+const hashStr=s=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+let net=null;
+async function netConnect(){
+ if(net||!window.__sibolDb)return;
+ const db=window.__sibolDb;
+ let id=null,nick="손님";
+ try{
+  const {data:a}=await db.auth.getUser();
+  if(a&&a.user){
+   id=a.user.id;
+   const {data:p}=await db.from("profiles").select("nickname").eq("id",id).maybeSingle();
+   nick=(p&&p.nickname)||"회원";
+  }
+ }catch{}
+ if(!id)id="g"+Math.random().toString(36).slice(2,9);
+ const ch=db.channel("sibol-world",{config:{broadcast:{self:false},presence:{key:id}}});
+ net={ch,id,nick,team:hashStr(id)%TEAMS.length,count:1,others:new Map()};
+ ch.on("broadcast",{event:"pos"},({payload})=>{
+  if(!net||!payload||payload.id===net.id)return;
+  let o=net.others.get(payload.id);
+  if(!o){o={x:payload.x,y:payload.y};net.others.set(payload.id,o)}
+  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,seen:performance.now()});
+ });
+ ch.on("broadcast",{event:"swing"},({payload})=>{
+  if(!net||!payload)return;
+  const o=net.others.get(payload.id);
+  if(o)o.swing={t:0,dur:0.18,ang:payload.ang};
+ });
+ ch.on("presence",{event:"sync"},()=>{if(net)net.count=Object.keys(ch.presenceState()).length});
+ ch.on("presence",{event:"leave"},({key})=>{if(net)net.others.delete(key)});
+ ch.subscribe(async st=>{if(st==="SUBSCRIBED"&&net)await ch.track({nick})});
+}
+function netLeave(){if(net){try{net.ch.unsubscribe()}catch{}net=null}}
+function netTick(dt){
+ if(!net)return;
+ S.netT+=dt;if(S.netT<0.1)return;S.netT=0;
+ net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),lvl:data.level,team:net.team}});
+}
+function updateRemotes(dt){
+ if(!net)return;
+ const now=performance.now();
+ for(const [key,o] of net.others){
+  if(now-o.seen>6000){net.others.delete(key);continue}
+  const k=Math.min(1,dt*12);
+  o.x+=(o.tx-o.x)*k;o.y+=(o.ty-o.y)*k;
+  if(o.swing){o.swing.t+=dt;if(o.swing.t>=o.swing.dur)o.swing=null}
+ }
+}
+function drawRemotes(){
+ if(!net)return;
+ for(const o of net.others.values()){
+  const sp=REMOTE[(o.team||0)%TEAMS.length];
+  const pf=o.run?Math.floor(S.time*8)%4:4;
+  shadowAt(o.x,o.y+PR*0.9,PR*1.1,PR*0.45);
+  drawSprite(sp,pf,false,o.x,o.y,o.face<0?-1:1,false);
+  if(o.swing){
+   const p=o.swing.t/o.swing.dur,a=o.swing.ang+(-0.9+1.8*(1-Math.pow(1-p,3)));
+   ctx.strokeStyle="rgba(255,255,255,"+(1-p*0.8)+")";ctx.lineWidth=3;
+   ctx.beginPath();ctx.arc(o.x,o.y,36,a-0.5,a+0.5);ctx.stroke();
+  }
+  const name=o.nick||"회원";
+  ctx.textAlign="center";ctx.font="bold 12px system-ui";
+  ctx.fillStyle="#000000";ctx.fillText(name,o.x+1,o.y-45);
+  ctx.fillStyle="#ffffff";ctx.fillText(name,o.x,o.y-46);
+  ctx.textAlign="left";
+ }
+}
+
+/* ── 초기화 / 연결 ── */
+prerenderSprites();
+prerenderRemote();
+prerenderBG();
 spawnStage();
 let gameMenuButton=$("menuGames");
 if(!gameMenuButton){
@@ -1403,6 +1692,7 @@ $("sgAttack").onclick=attack;
 $("sgSkill1").onclick=useSkill1;
 $("sgSkill2").onclick=useSkill2;
 $("sgPotion").onclick=potion;
+$("sgDash").onclick=dashMove;
 $("sgMute").onclick=()=>{muted=!muted;$("sgMute").textContent=muted?"🔇":"🔊"};
 overlay.addEventListener("click",e=>{if(e.target===overlay)exit()});
 document.querySelectorAll("#sibolGamePanel [data-sgtab]").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.sgtab)));
@@ -1420,6 +1710,7 @@ document.addEventListener("keydown",e=>{
  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();
  if(e.key===" "){attack();return}
  if(e.repeat)return;
+ if(e.key==="Shift"){dashMove();return}
  if(k==="q"){potion();return}
  if(k==="1"){useSkill1();return}
  if(k==="2"){useSkill2();return}
