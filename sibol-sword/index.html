@@ -4,732 +4,456 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#10101a">
+<meta name="theme-color" content="#11111a">
 <title>시볼의 검</title>
 <style>
 :root{
-  --bg:#10101a;--panel:#1b1b2a;--panel2:#25253a;
-  --line:#393952;--text:#f4f2ff;--muted:#a6a4c2;
-  --purple:#9d83ff;--gold:#ffd166;--red:#ff697d;--green:#6de0a2;
+  --bg:#11111a;--panel:#191927;--panel2:#11121f;
+  --border:#343449;--text:#f1effb;--muted:#a7a5bb;
+  --purple:#a18aff;--pink:#ff6685;--green:#5ee2a3;--gold:#ffd166;
 }
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
-font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;overscroll-behavior:none}
-button{font:inherit;color:inherit;border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:10px 13px;cursor:pointer;touch-action:manipulation}
-button:active{transform:scale(.97)}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
+body{padding:12px;overscroll-behavior-y:contain}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:active{filter:brightness(1.15)}
 button:disabled{opacity:.4;cursor:not-allowed}
-#app{height:100dvh;display:flex;flex-direction:column;min-height:0}
-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#171725;border-bottom:1px solid var(--line);flex-shrink:0}
-.logo{font-weight:900;font-size:19px;color:#c6b5ff}
-.stats{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;font-size:12px}
-.stat{background:#242438;border:1px solid var(--line);padding:5px 8px;border-radius:8px}
-#gameWrap{position:relative;flex:1;min-height:0;overflow:hidden;background:#20273a}
-canvas{width:100%;height:100%;display:block;touch-action:none;image-rendering:pixelated}
-#toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:90%;padding:9px 13px;border-radius:12px;background:#11111ee8;border:1px solid var(--line);font-size:13px;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s;z-index:5}
+.page{width:min(900px,100%);margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.brand{font-size:21px;font-weight:900;letter-spacing:-1px}
+.brand span{color:var(--purple)}
+.currency{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.currency span{background:#202031;border:1px solid var(--border);padding:7px 9px;border-radius:10px;font-size:12px}
+.panel{border:1px solid var(--border);background:linear-gradient(145deg,#1b1b2b,#151521);
+border-radius:23px;overflow:hidden;margin-bottom:16px;box-shadow:0 6px 20px #0002}
+.zonehead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;background:#1b1b2c}
+.zonehead h2{font-size:17px;margin:0 0 3px}
+.zonehead p{font-size:13px;color:var(--muted);margin:0}
+.secondary{background:#25253a;border:1px solid #46465f;border-radius:15px;padding:14px 15px}
+#world{position:relative;width:100%;height:clamp(360px,70vw,510px);background:#315448;overflow:hidden;touch-action:none}
+#world canvas{width:100%;height:100%;display:block;image-rendering:pixelated;touch-action:none}
+.hud{position:absolute;top:16px;left:16px;width:min(390px,calc(100% - 32px));background:#11121ff0;
+border:1px solid #3a394d;border-radius:15px;padding:11px}
+.hudtop,.hudrow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
+.hudtop{font-weight:750;margin-bottom:8px}
+.bar{height:12px;background:#3b3049;margin:7px 0;border-radius:1px;overflow:hidden}
+.bar>div{height:100%;transition:width .15s}
+#hp{background:var(--pink);width:100%}
+#xp{background:var(--purple);width:0}
+.hudrow{margin-top:6px}
+.controls{padding:12px;background:#151521}
+.controlrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 1.7fr;gap:7px}
+.control{min-height:66px;background:#25253a;border:1px solid #46465e;border-radius:17px;
+font-size:15px;display:flex;align-items:center;justify-content:center;text-align:center;padding:5px}
+.control.attack{background:var(--purple);color:#171322;border-color:#c1b3ff;font-weight:900}
+.hint{font-size:13px;color:var(--muted);margin:12px 7px 3px}
+.status{padding:20px}
+.sectiontitle{font-size:17px;font-weight:850;margin:0 0 17px}
+.statgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.statbox{padding:15px;background:#11121f;border:1px solid #303044;border-radius:16px;min-height:91px}
+.statbox small{display:block;color:var(--muted);font-size:13px;margin-bottom:3px}
+.statbox strong{font-size:27px;line-height:1.2}
+.substats{font-size:13px;color:var(--muted);margin-top:19px}
+.nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;padding:12px}
+.nav button{background:#242438;border:1px solid #39394f;border-radius:13px;padding:13px 4px;font-size:13px}
+.nav button:active{border-color:var(--purple)}
+#toast{position:fixed;z-index:30;top:16px;left:50%;transform:translateX(-50%);
+background:#242438;border:1px solid #55516f;border-radius:13px;padding:11px 16px;
+font-size:13px;max-width:90%;pointer-events:none;opacity:0;transition:opacity .2s}
 #toast.show{opacity:1}
-#zoneLabel{position:absolute;top:10px;left:10px;background:#11111ed9;border:1px solid #ffffff22;border-radius:10px;padding:7px 10px;font-size:12px;pointer-events:none}
-#hpBar{position:absolute;top:48px;left:10px;width:min(180px,45%);height:13px;background:#421f32;border-radius:8px;overflow:hidden;border:1px solid #ffffff22}
-#hpFill{height:100%;width:100%;background:#ff5977;transition:width .1s}
-#xpBar{position:absolute;top:65px;left:10px;width:min(180px,45%);height:6px;background:#25253b;border-radius:8px;overflow:hidden}
-#xpFill{height:100%;width:0;background:#b18cff}
-#controls{position:absolute;left:0;right:0;bottom:0;height:150px;pointer-events:none}
-#joy{position:absolute;left:17px;bottom:16px;width:112px;height:112px;border-radius:50%;background:#141425a8;border:2px solid #ffffff35;pointer-events:auto;touch-action:none;user-select:none}
-#joyKnob{position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%;background:#a58affcc;border:2px solid #e2d7ff;box-shadow:0 0 14px #9d83ff55;pointer-events:none}
-.actionBtns{position:absolute;right:14px;bottom:18px;display:flex;align-items:flex-end;gap:9px;pointer-events:auto}
-.actionBtn{width:64px;height:64px;border-radius:50%;font-weight:800;background:#3a2d62d9;border:2px solid #c1adff;box-shadow:0 4px 14px #0005;touch-action:none;user-select:none}
-.actionBtn.attack{width:76px;height:76px;background:#843e5ad9;border-color:#ff9bb2}
-.actionBtn small{display:block;font-size:10px;font-weight:500}
-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:7px;background:#171725;border-top:1px solid var(--line);padding-bottom:max(7px,env(safe-area-inset-bottom));flex-shrink:0}
-nav button{padding:9px 2px;font-size:12px;border-radius:10px;white-space:nowrap}
-nav button.active{border-color:var(--purple);background:#392e60}
-#panel{position:absolute;inset:0;background:#090914c9;display:none;align-items:center;justify-content:center;padding:12px;z-index:10}
-#panel.open{display:flex}
-.modal{width:min(620px,100%);max-height:92%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 20px 70px #0009}
-.modalHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
-.modalHead h2{font-size:19px;margin:0}
-.close{padding:6px 11px}
-.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.card{background:#232338;border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
-.card h3{font-size:15px;margin:0 0 5px}
-.card p{font-size:12px;line-height:1.55;color:var(--muted);margin:5px 0 10px}
-.card button{width:100%;font-size:12px}
-.emoji{font-size:27px;margin-bottom:7px}
-.tag{display:inline-block;font-size:10px;padding:3px 6px;border-radius:6px;background:#39334f;color:#d9ceff;margin-bottom:6px}
-.gold{color:var(--gold)}.green{color:var(--green)}.muted{color:var(--muted)}
-.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.list{display:flex;flex-direction:column;gap:8px}
-.listItem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#232338;border:1px solid var(--line);border-radius:12px;padding:10px}
-.listItem p{font-size:12px;color:var(--muted);margin:3px 0}
-#notice{font-size:12px;line-height:1.6;color:var(--muted);margin-top:12px;padding:10px;background:#151522;border-radius:10px}
-footer{text-align:center;color:#77758f;font-size:10px;padding:5px}
-@media(max-width:390px){
- header{padding:7px 8px}.logo{font-size:16px}.stat{font-size:10px;padding:4px 5px}
- #joy{width:100px;height:100px;left:10px;bottom:12px}
- .actionBtns{right:8px;bottom:13px;gap:5px}
- .actionBtn{width:55px;height:55px;font-size:12px}
- .actionBtn.attack{width:67px;height:67px}
- nav button{font-size:11px}
- .modal{padding:12px}
+#modal{display:none;position:fixed;z-index:20;inset:0;background:#080810d9;padding:14px;
+align-items:center;justify-content:center}
+#modal.open{display:flex}
+.dialog{width:min(620px,100%);max-height:88dvh;overflow:auto;background:#191927;
+border:1px solid #414158;border-radius:22px;padding:17px}
+.dialoghead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.dialoghead h2{font-size:19px;margin:0}
+.close{background:#29293e;border:1px solid var(--border);border-radius:11px;padding:8px 12px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.item{background:#11121f;border:1px solid #343449;border-radius:15px;padding:13px;min-width:0}
+.itemicon{font-size:27px;margin-bottom:7px}
+.item h3{font-size:14px;margin:0 0 7px}
+.item p{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 12px}
+.item button,.wide{width:100%;border:1px solid #4b4666;border-radius:11px;padding:10px;background:#29273d;font-size:12px}
+.item button.primary,.wide.primary{background:var(--purple);color:#181324;font-weight:850}
+.item .price{font-size:13px;color:var(--gold);margin-bottom:10px}
+.rows{display:flex;flex-direction:column;gap:8px}
+.entry{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#11121f;
+border:1px solid #343449;border-radius:13px;padding:12px}
+.entry small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.entry button{border:1px solid #4b4666;border-radius:10px;padding:8px;background:#29273d;font-size:12px}
+.note{font-size:12px;line-height:1.7;color:var(--muted);padding:12px;margin-top:12px;background:#11121f;border-radius:12px}
+#mobilePad{display:none}
+@media(max-width:520px){
+ body{padding:8px}
+ .brand{font-size:18px}
+ .currency span{font-size:11px;padding:6px}
+ .zonehead{padding:15px}
+ .zonehead h2{font-size:15px}
+ .secondary{padding:11px 10px;font-size:13px}
+ #world{height:clamp(380px,112vw,530px)}
+ .hud{left:12px;top:12px;width:min(350px,calc(100% - 24px));padding:10px}
+ .controlrow{grid-template-columns:repeat(4,minmax(0,1fr)) 1.5fr;gap:5px}
+ .control{min-height:64px;font-size:13px;border-radius:13px}
+ .control.attack{font-size:14px}
+ .controls{padding:10px}
+ .hint{font-size:12px}
+ .status{padding:16px}
+ .statbox{min-height:83px;padding:12px}
+ .statbox strong{font-size:24px}
+ .nav{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}
+ .nav button{padding:12px 4px}
+ .cards{gap:8px}
+ .item{padding:10px}
 }
-@media(orientation:landscape) and (max-height:480px){
- header{padding:4px 9px}.logo{font-size:15px}
- #controls{height:115px}
- #joy{width:88px;height:88px;bottom:8px}
- #joyKnob{width:36px;height:36px}
- .actionBtns{bottom:8px}
- .actionBtn{width:48px;height:48px}
- .actionBtn.attack{width:57px;height:57px}
- nav{padding:4px}nav button{padding:5px}
+@media(orientation:landscape) and (max-height:500px){
+ #world{height:300px}
+ .hud{width:290px}
 }
 </style>
 </head>
 <body>
-<div id="app">
-<header>
-  <div class="logo">⚔ 시볼의 검</div>
-  <div class="stats">
-    <div class="stat">Lv.<b id="level">1</b></div>
-    <div class="stat gold">🪙 <b id="gold">100</b></div>
-    <div class="stat">💎 <b id="gems">0</b></div>
-  </div>
-</header>
-
-<div id="gameWrap">
-  <canvas id="game"></canvas>
-  <div id="zoneLabel">🌿 초보 숲</div>
-  <div id="hpBar"><div id="hpFill"></div></div>
-  <div id="xpBar"><div id="xpFill"></div></div>
-  <div id="toast"></div>
-
-  <div id="controls">
-    <div id="joy" aria-label="이동 조이스틱">
-      <div id="joyKnob"></div>
-    </div>
-    <div class="actionBtns">
-      <button class="actionBtn" id="potionBtn">🧪<small>물약</small></button>
-      <button class="actionBtn" id="skillBtn">✨<small>강타</small></button>
-      <button class="actionBtn attack" id="attackBtn">⚔<small>공격</small></button>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">⚔ <span>시볼</span>의 검</div>
+    <div class="currency">
+      <span>🪙 <b id="gold">100</b></span>
+      <span>💎 <b id="gems">0</b></span>
     </div>
   </div>
 
-  <div id="panel">
-    <div class="modal">
-      <div class="modalHead">
-        <h2 id="panelTitle">메뉴</h2>
-        <button class="close" id="closePanel">닫기 ✕</button>
+  <section class="panel">
+    <div class="zonehead">
+      <div>
+        <h2 id="zoneName">초보자의 들판</h2>
+        <p id="zoneMobs">슬라임과 들개</p>
       </div>
-      <div id="panelContent"></div>
+      <button class="secondary" id="zoneOpen">사냥터 변경</button>
     </div>
-  </div>
+    <div id="world">
+      <canvas id="game"></canvas>
+      <div class="hud">
+        <div class="hudtop"><span id="playerName">검객</span><span>Lv.<b id="level">1</b></span></div>
+        <div class="bar"><div id="hp"></div></div>
+        <div class="hudrow"><span>HP <span id="hpText">100/100</span></span><span>공격 <b id="attackStat">10</b></span></div>
+        <div class="bar"><div id="xp"></div></div>
+        <div class="hudrow"><span>EXP <span id="xpText">0/30</span></span><span id="weaponText">나무 검</span></div>
+      </div>
+      <div id="mobilePad"></div>
+    </div>
+    <div class="controls">
+      <div class="controlrow">
+        <button class="control" data-dir="up">위</button>
+        <button class="control" data-dir="left">왼쪽</button>
+        <button class="control" data-dir="down">아래</button>
+        <button class="control" data-dir="right">오른쪽</button>
+        <button class="control attack" id="attackBtn">검 휘두르기</button>
+      </div>
+      <div class="hint">이동: 가상 조이스틱 또는 방향 버튼 · 공격: 공격 버튼 · 물약: Q</div>
+    </div>
+  </section>
+
+  <section class="panel status">
+    <h2 class="sectiontitle">캐릭터 상태</h2>
+    <div class="statgrid">
+      <div class="statbox"><small>레벨</small><strong id="statLevel">1</strong></div>
+      <div class="statbox"><small>공격력</small><strong id="statAttack">10</strong></div>
+      <div class="statbox"><small>방어력</small><strong id="statDefense">1</strong></div>
+      <div class="statbox"><small>물약</small><strong id="statPotions">3</strong></div>
+    </div>
+    <div class="substats">처치 <b id="kills">0</b>마리 · 재료 <b id="stones">0</b>개 · 점수 <b id="score">0</b></div>
+  </section>
+
+  <section class="panel">
+    <div class="nav">
+      <button id="shopBtn">🪙 골드 상점</button>
+      <button id="premiumBtn">💎 유료 상점</button>
+      <button id="inventoryBtn">🎒 인벤토리</button>
+      <button id="statusBtn">⚒ 무기 강화</button>
+    </div>
+  </section>
 </div>
 
-<nav>
-  <button data-menu="zones">🗺 사냥터</button>
-  <button data-menu="goldshop">🪙 골드 상점</button>
-  <button data-menu="premium">💎 유료 상점</button>
-  <button data-menu="inventory">🎒 가방</button>
-  <button data-menu="status">📊 캐릭터</button>
-</nav>
-<footer>시볼의 검 · 게임 진행은 현재 이 기기에 임시 저장됩니다.</footer>
+<div id="toast"></div>
+<div id="modal">
+  <div class="dialog">
+    <div class="dialoghead"><h2 id="modalTitle">메뉴</h2><button class="close" id="closeModal">닫기 ✕</button></div>
+    <div id="modalBody"></div>
+  </div>
 </div>
 
 <script>
 "use strict";
-
-/* ==========================================================
-   시볼의 검
-   - 조작 및 골드 상점: 브라우저에서 작동
-   - 유료 상점: 상품 표시만 작동
-   - 실제 결제: 서버 및 결제업체 연동 전까지 비활성
-   ========================================================== */
-
-const $ = id => document.getElementById(id);
-const canvas = $("game");
-const ctx = canvas.getContext("2d");
-
-const ZONES = [
-  {id:"forest",name:"초보 숲",icon:"🌿",min:1,
-   desc:"초보 모험가를 위한 사냥터.",bg:"#284b3a",ground:"#416447",mob:"슬라임",hp:35,atk:5,xp:12,gold:5},
-  {id:"cave",name:"어둠의 동굴",icon:"🕳️",min:5,
-   desc:"강한 몬스터와 더 큰 보상.",bg:"#302b48",ground:"#4c4564",mob:"동굴 박쥐",hp:100,atk:12,xp:30,gold:14},
-  {id:"volcano",name:"화염 황무지",icon:"🌋",min:10,
-   desc:"위험하지만 보상이 높은 지역.",bg:"#55303a",ground:"#74434a",mob:"화염 골렘",hp:240,atk:24,xp:65,gold:30}
+const $=id=>document.getElementById(id);
+const canvas=$("game"),ctx=canvas.getContext("2d");
+const zones=[
+ {id:"field",name:"초보자의 들판",mobs:"슬라임과 들개",min:1,bg:"#315448",mob:"슬라임",hp:30,atk:4,xp:10,gold:5},
+ {id:"forest",name:"깊은 숲",mobs:"숲 늑대와 고블린",min:5,bg:"#294737",mob:"숲 늑대",hp:75,atk:9,xp:22,gold:12},
+ {id:"cave",name:"어둠의 동굴",mobs:"박쥐와 동굴 괴물",min:10,bg:"#373047",mob:"동굴 괴물",hp:160,atk:17,xp:45,gold:25}
 ];
-
-const SHOP = [
-  {id:"potion",name:"회복 물약",icon:"🧪",desc:"체력 45 회복.",price:25},
-  {id:"stone",name:"강화석",icon:"💠",desc:"무기 강화에 사용하는 재료.",price:80},
-  {id:"sword",name:"철검",icon:"⚔️",desc:"공격력 +8.",price:180},
-  {id:"boost",name:"경험치 부스트",icon:"📘",desc:"10분간 경험치 2배 효과 대신, 이 데모에서는 20회 처치 동안 적용.",price:250},
-  {id:"goldboost",name:"골드 부스트",icon:"🪙",desc:"20회 처치 동안 골드 보상 2배.",price:250}
+const goods=[
+ {id:"potion",icon:"🧪",name:"회복 물약",desc:"체력 45 회복",price:25},
+ {id:"stone",icon:"💠",name:"강화석",desc:"무기 강화 재료",price:70},
+ {id:"sword",icon:"⚔️",name:"철검",desc:"공격력 +8",price:180},
+ {id:"exp",icon:"📘",name:"경험치 부스트",desc:"다음 20회 처치 경험치 2배",price:220},
+ {id:"goldboost",icon:"🪙",name:"골드 부스트",desc:"다음 20회 처치 골드 2배",price:220}
 ];
-
-const PREMIUM = [
-  {id:"skin_blue",name:"푸른 검객 스킨",icon:"🧥",desc:"캐릭터 색상을 푸른색으로 변경.",price:"₩1,100",kind:"skin"},
-  {id:"skin_gold",name:"황금 검객 스킨",icon:"👑",desc:"황금빛 캐릭터 외형.",price:"₩2,200",kind:"skin"},
-  {id:"premium_sword",name:"빛의 검",icon:"🌟",desc:"공격력 +25. 유료 상품.",price:"₩3,300",kind:"weapon"},
-  {id:"gem_100",name:"유료 재화 100개",icon:"💎",desc:"프리미엄 재화 100개.",price:"₩1,100",kind:"gems"},
-  {id:"gem_550",name:"유료 재화 550개",icon:"💎",desc:"프리미엄 재화 550개.",price:"₩5,500",kind:"gems"},
-  {id:"expboost",name:"경험치 부스트 패키지",icon:"📘",desc:"경험치 부스트 20회분.",price:"₩1,100",kind:"expboost"}
+const paidGoods=[
+ {id:"blue",icon:"🧥",name:"푸른 검객 스킨",desc:"푸른색 캐릭터 외형",price:"₩1,100"},
+ {id:"goldskin",icon:"👑",name:"황금 검객 스킨",desc:"황금빛 캐릭터 외형",price:"₩2,200"},
+ {id:"lightsword",icon:"🌟",name:"빛의 검",desc:"공격력 +25",price:"₩3,300"},
+ {id:"gems100",icon:"💎",name:"보석 100개",desc:"유료 재화 100개",price:"₩1,100"},
+ {id:"gems550",icon:"💎",name:"보석 550개",desc:"유료 재화 550개",price:"₩5,500"},
+ {id:"boostpack",icon:"📦",name:"부스트 패키지",desc:"경험치 및 골드 부스트",price:"₩1,100"}
 ];
-
-const defaultState = {
-  level:1,xp:0,gold:100,gems:0,hp:100,maxHp:100,
-  attack:12,potions:3,stones:0,weapon:"나무 검",
-  weaponLevel:0,zone:"forest",kills:0,
-  expBoost:0,goldBoost:0,skin:"기본",
-  inventory:[],owned:[],x:0,y:0
+const base={
+ level:1,xp:0,gold:100,gems:0,hp:100,maxHp:100,attack:10,defense:1,
+ potions:3,stones:0,kills:0,score:0,weapon:"나무 검",weaponLevel:0,
+ zone:"field",skin:"default",expBoost:0,goldBoost:0,owned:[]
 };
-
-let state = {...defaultState};
-try{
-  const saved = localStorage.getItem("sibol_sword_v2");
-  if(saved){
-    const data = JSON.parse(saved);
-    state = {...defaultState,...data};
-  }
-}catch(e){}
-
-let currentZone = ZONES.find(z=>z.id===state.zone)||ZONES[0];
-let player = {x:0,y:0,dirX:0,dirY:1,attackTimer:0,skillTimer:0,invuln:0};
-let monsters = [];
-let particles = [];
-let keys = {};
-let joystick = {active:false,id:null,x:0,y:0};
-let attackHeld = false;
-let attackPointer = null;
-let skillPointer = null;
-let lastTime = 0;
-let toastTimer = null;
-let attackCooldown = 0;
-let skillCooldown = 0;
-let panelOpen = false;
-
-function save(){
-  try{
-    state.x=player.x;state.y=player.y;
-    localStorage.setItem("sibol_sword_v2",JSON.stringify(state));
-  }catch(e){}
+let s={...base};
+try{s={...base,...JSON.parse(localStorage.getItem("sibol-game-v3")||"{}")}}catch(e){}
+let zone=zones.find(z=>z.id===s.zone)||zones[0];
+let p={x:0,y:0,dx:0,dy:1,attackAnim:0,invuln:0};
+let mobs=[],effects=[],keys=new Set(),touchDirections=new Map();
+let joy={id:null,x:0,y:0},attackPointers=new Set(),last=0;
+let attackCd=0,modalOpen=false,toastTimer;
+function save(){try{localStorage.setItem("sibol-game-v3",JSON.stringify(s))}catch(e){}}
+function toast(t){$("toast").textContent=t;$("toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),1800)}
+function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
+function xpNeed(){return s.level*30}
+function update(){
+ $("gold").textContent=s.gold;$("gems").textContent=s.gems;
+ $("level").textContent=s.level;$("statLevel").textContent=s.level;
+ $("attackStat").textContent=s.attack;$("statAttack").textContent=s.attack;
+ $("statDefense").textContent=s.defense;$("statPotions").textContent=s.potions;
+ $("hp").style.width=100*s.hp/s.maxHp+"%";
+ $("hpText").textContent=s.hp+"/"+s.maxHp;
+ $("xp").style.width=100*s.xp/xpNeed()+"%";
+ $("xpText").textContent=s.xp+"/"+xpNeed();
+ $("weaponText").textContent=s.weapon;
+ $("kills").textContent=s.kills;$("stones").textContent=s.stones;$("score").textContent=s.score;
+ $("zoneName").textContent=zone.name;$("zoneMobs").textContent=zone.mobs;
 }
-function toast(message){
-  const el=$("toast");
-  el.textContent=message;
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove("show"),1900);
+function spawn(n){for(let i=0;i<n;i++)mobs.push({x:Math.random()*700-350,y:Math.random()*500-250,hp:zone.hp,max:zone.hp,cd:Math.random(),speed:24+Math.random()*14,flash:0})}
+function setZone(id){
+ let z=zones.find(a=>a.id===id);if(!z)return;
+ if(s.level<z.min){toast("레벨 "+z.min+" 이상부터 입장 가능");return}
+ zone=z;s.zone=id;p.x=0;p.y=0;mobs=[];spawn(9);
+ closeModal();update();save();toast(zone.name+" 입장");
 }
-function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
-function rand(min,max){return Math.random()*(max-min)+min;}
-function xpNeed(){return state.level*50;}
-function zoneUnlocked(zone){return state.level>=zone.min;}
-function setZone(zoneId){
-  const z=ZONES.find(x=>x.id===zoneId);
-  if(!z)return;
-  if(!zoneUnlocked(z)){
-    toast("레벨 "+z.min+" 이상부터 입장할 수 있어!");
-    return;
-  }
-  currentZone=z;
-  state.zone=z.id;
-  player.x=0;player.y=0;
-  monsters=[];
-  spawnMonsters(8);
-  $("zoneLabel").textContent=z.icon+" "+z.name;
-  closePanel();
-  save();updateUI();
-  toast(z.name+" 입장!");
+function xpGain(n){
+ if(s.expBoost>0)n*=2;s.xp+=n;
+ while(s.xp>=xpNeed()){s.xp-=xpNeed();s.level++;s.maxHp+=10;s.attack+=2;s.hp=s.maxHp;toast("레벨 업! Lv."+s.level)}
 }
-function spawnMonsters(count){
-  for(let i=0;i<count;i++){
-    monsters.push({
-      x:rand(-420,420),y:rand(-300,300),
-      hp:currentZone.hp,maxHp:currentZone.hp,
-      speed:rand(22,36),attack:currentZone.atk,
-      cooldown:rand(.2,1.5),hitFlash:0,
-      id:Math.random().toString(36).slice(2),
-      type:currentZone.mob
-    });
-  }
-}
-function updateUI(){
-  $("level").textContent=state.level;
-  $("gold").textContent=Math.floor(state.gold);
-  $("gems").textContent=state.gems;
-  $("hpFill").style.width=(state.hp/state.maxHp*100)+"%";
-  $("xpFill").style.width=(state.xp/xpNeed()*100)+"%";
-  $("zoneLabel").textContent=currentZone.icon+" "+currentZone.name;
-}
-function gainXP(amount){
-  if(state.expBoost>0)amount*=2;
-  state.xp+=amount;
-  while(state.xp>=xpNeed()){
-    state.xp-=xpNeed();
-    state.level++;
-    state.maxHp+=12;
-    state.attack+=2;
-    state.hp=state.maxHp;
-    toast("레벨 업! Lv."+state.level);
-  }
-}
-function addParticle(x,y,text,color="#fff"){
-  particles.push({x,y,text,color,life:.8,max:.8});
-}
-function damageMonster(m,damage){
-  m.hp-=damage;
-  m.hitFlash=.13;
-  addParticle(m.x,m.y-18,"-"+damage,"#ffe5a0");
-  if(m.hp<=0){
-    const idx=monsters.indexOf(m);
-    if(idx>=0)monsters.splice(idx,1);
-    state.kills++;
-    const g=currentZone.gold*(state.goldBoost>0?2:1);
-    state.gold+=g;
-    gainXP(currentZone.xp);
-    addParticle(m.x,m.y,"+"+g+"G","#ffd166");
-    if(Math.random()<.18)state.stones++;
-    if(state.expBoost>0)state.expBoost--;
-    if(state.goldBoost>0)state.goldBoost--;
-    if(monsters.length<5)spawnMonsters(4);
-    updateUI();save();
-  }
+function effect(x,y,text,color="#fff"){effects.push({x,y,text,life:.8,color})}
+function hit(m,dmg){
+ m.hp-=dmg;m.flash=.12;effect(m.x,m.y-18,"-"+dmg,"#ffe5a0");
+ if(m.hp<=0){
+  mobs.splice(mobs.indexOf(m),1);s.kills++;s.score+=10;
+  let g=zone.gold*(s.goldBoost>0?2:1);s.gold+=g;xpGain(zone.xp);
+  if(Math.random()<.2)s.stones++;
+  if(s.expBoost>0)s.expBoost--;if(s.goldBoost>0)s.goldBoost--;
+  effect(m.x,m.y,"+"+g+"G","#ffd166");
+  if(mobs.length<5)spawn(4);update();save()
+ }
 }
 function attack(){
-  if(attackCooldown>0)return;
-  attackCooldown=.32;
-  player.attackTimer=.18;
-  const range=70;
-  const facingX=player.dirX, facingY=player.dirY;
-  let candidates=monsters.map(m=>({
-    m,d:Math.hypot(m.x-player.x,m.y-player.y),
-    dot:((m.x-player.x)*facingX+(m.y-player.y)*facingY)
-  })).filter(o=>o.d<range && (facingX===0&&facingY===0?true:o.dot>-18));
-  candidates.sort((a,b)=>a.d-b.d);
-  if(candidates.length){
-    damageMonster(candidates[0].m,state.attack+state.weaponLevel*3);
-  }else{
-    addParticle(player.x+player.dirX*35,player.y+player.dirY*35,"빗나감","#d8d1ff");
-  }
+ if(attackCd>0)return;attackCd=.34;p.attackAnim=.2;
+ let target=null,dist=65;
+ for(let m of mobs){let d=Math.hypot(m.x-p.x,m.y-p.y);if(d<dist){dist=d;target=m}}
+ if(target)hit(target,s.attack+s.weaponLevel*3);
 }
-function skill(){
-  if(skillCooldown>0)return;
-  skillCooldown=3.5;
-  player.skillTimer=.25;
-  let hits=0;
-  for(const m of [...monsters]){
-    if(Math.hypot(m.x-player.x,m.y-player.y)<115){
-      damageMonster(m,Math.floor(state.attack*2.3+state.weaponLevel*4));
-      hits++;
-    }
-  }
-  toast(hits?"강타! "+hits+"마리 공격":"주변에 몬스터가 없어!");
+function potion(){
+ if(s.potions<1)return toast("물약이 없어!");
+ if(s.hp>=s.maxHp)return toast("체력이 가득 차 있어!");
+ s.potions--;s.hp=Math.min(s.maxHp,s.hp+45);update();save();toast("체력 회복")
 }
-function usePotion(){
-  if(state.potions<=0){toast("회복 물약이 없어!");return;}
-  if(state.hp>=state.maxHp){toast("체력이 이미 가득 차 있어!");return;}
-  state.potions--;
-  state.hp=Math.min(state.maxHp,state.hp+45);
-  updateUI();save();toast("체력을 회복했어!");
+function sizeCanvas(){
+ const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);
+ canvas.width=Math.max(1,Math.floor(r.width*d));canvas.height=Math.max(1,Math.floor(r.height*d));
+ ctx.setTransform(d,0,0,d,0,0)
 }
-function playerHit(amount){
-  if(player.invuln>0)return;
-  player.invuln=.65;
-  state.hp-=amount;
-  addParticle(player.x,player.y-22,"-"+amount,"#ff7b91");
-  if(state.hp<=0){
-    state.hp=state.maxHp;
-    state.gold=Math.max(0,state.gold- Math.floor(state.gold*.05));
-    player.x=0;player.y=0;
-    toast("쓰러졌어! 마을에서 다시 시작해.");
-  }
-  updateUI();save();
-}
-
-/* Canvas 크기: CSS 표시 크기와 실제 렌더링 해상도를 맞춘다. */
-function resizeCanvas(){
-  const rect=canvas.getBoundingClientRect();
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=Math.max(1,Math.floor(rect.width*dpr));
-  canvas.height=Math.max(1,Math.floor(rect.height*dpr));
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-}
-window.addEventListener("resize",resizeCanvas);
-window.addEventListener("orientationchange",()=>setTimeout(resizeCanvas,100));
-
-function roundedRect(x,y,w,h,r,color){
-  ctx.fillStyle=color;ctx.beginPath();
-  ctx.roundRect(x,y,w,h,r);ctx.fill();
-}
-function drawBackground(w,h){
-  ctx.fillStyle=currentZone.bg;ctx.fillRect(0,0,w,h);
-  const spacing=48;
-  const ox=((player.x%spacing)+spacing)%spacing;
-  const oy=((player.y%spacing)+spacing)%spacing;
-  ctx.strokeStyle="#ffffff0b";ctx.lineWidth=1;
-  for(let x=-spacing;x<w+spacing;x+=spacing){
-    ctx.beginPath();ctx.moveTo(x-ox,0);ctx.lineTo(x-ox,h);ctx.stroke();
-  }
-  for(let y=-spacing;y<h+spacing;y+=spacing){
-    ctx.beginPath();ctx.moveTo(0,y-oy);ctx.lineTo(w,y-oy);ctx.stroke();
-  }
-  /* 지형 장식 */
-  for(let i=0;i<35;i++){
-    const wx=(i*137%900)-450;
-    const wy=(i*89%700)-350;
-    const sx=w/2+wx-player.x*.2;
-    const sy=h/2+wy-player.y*.2;
-    if(sx<-20||sx>w+20||sy<-20||sy>h+20)continue;
-    ctx.fillStyle=currentZone.id==="volcano"?"#ff9b6930":"#b8dba020";
-    ctx.fillRect(sx,sy,4,4);
-  }
-}
-function drawPlayer(w,h){
-  const x=w/2,y=h/2;
-  ctx.save();
-  if(player.invuln>0 && Math.floor(player.invuln*20)%2===0)ctx.globalAlpha=.45;
-  /* 그림자 */
-  ctx.fillStyle="#0005";ctx.beginPath();ctx.ellipse(x,y+11,15,7,0,0,Math.PI*2);ctx.fill();
-  const bodyColor=state.skin==="푸른 검객"?"#58b9ff":state.skin==="황금 검객"?"#ffd166":"#a58aff";
-  ctx.fillStyle=bodyColor;ctx.fillRect(x-10,y-12,20,24);
-  ctx.fillStyle="#f1d4bd";ctx.fillRect(x-8,y-25,16,14);
-  ctx.fillStyle="#28243a";ctx.fillRect(x-9,y-29,18,7);
-  ctx.fillStyle="#25233a";
-  const eyeX=player.dirX>0?3:player.dirX<0?-5:-2;
-  ctx.fillRect(x+eyeX,y-20,3,3);
-  ctx.fillStyle="#e5e7ff";ctx.fillRect(x-8,y+12,6,8);ctx.fillRect(x+2,y+12,6,8);
-  /* 검 */
-  ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(player.dirY,player.dirX)+Math.PI/2);
-  ctx.fillStyle="#deddf2";ctx.fillRect(8,-27,5,23);
-  ctx.fillStyle="#ffd166";ctx.fillRect(5,-8,11,4);
-  ctx.fillStyle="#8b5c36";ctx.fillRect(9,-4,3,9);
-  ctx.restore();
-  if(player.attackTimer>0){
-    ctx.strokeStyle="#f5e9ff";ctx.lineWidth=4;
-    ctx.beginPath();ctx.arc(x,y,45,-1.1,1.1);ctx.stroke();
-  }
-  if(player.skillTimer>0){
-    ctx.strokeStyle="#b6a2ff";ctx.lineWidth=5;
-    ctx.beginPath();ctx.arc(x,y,68,0,Math.PI*2);ctx.stroke();
-  }
-  ctx.restore();
-}
-function drawMonster(m,w,h){
-  const x=w/2+m.x-player.x;
-  const y=h/2+m.y-player.y;
-  if(x<-50||x>w+50||y<-60||y>h+60)return;
-  ctx.save();
-  ctx.fillStyle="#0004";ctx.beginPath();ctx.ellipse(x,y+9,15,6,0,0,Math.PI*2);ctx.fill();
-  if(currentZone.id==="forest"){
-    ctx.fillStyle=m.hitFlash>0?"#fff":"#74e8b4";
-    ctx.beginPath();ctx.ellipse(x,y,15,14,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#193b3a";ctx.fillRect(x-7,y-3,3,4);ctx.fillRect(x+4,y-3,3,4);
-    ctx.fillStyle="#fff";ctx.fillRect(x-4,y+4,8,2);
-  }else if(currentZone.id==="cave"){
-    ctx.fillStyle=m.hitFlash>0?"#fff":"#8f82c6";
-    ctx.beginPath();ctx.moveTo(x-17,y-5);ctx.lineTo(x-28,y-20);ctx.lineTo(x-24,y+9);ctx.lineTo(x-9,y+13);ctx.fill();
-    ctx.beginPath();ctx.moveTo(x+17,y-5);ctx.lineTo(x+28,y-20);ctx.lineTo(x+24,y+9);ctx.lineTo(x+9,y+13);ctx.fill();
-    ctx.fillStyle="#e7dfff";ctx.fillRect(x-5,y-3,3,3);ctx.fillRect(x+3,y-3,3,3);
-  }else{
-    ctx.fillStyle=m.hitFlash>0?"#fff":"#d96e55";
-    ctx.fillRect(x-14,y-16,28,30);
-    ctx.fillRect(x-18,y-7,7,18);ctx.fillRect(x+11,y-7,7,18);
-    ctx.fillStyle="#ffdc8a";ctx.fillRect(x-8,y-7,4,4);ctx.fillRect(x+4,y-7,4,4);
-  }
-  const bw=34,bh=4;
-  ctx.fillStyle="#341e2a";ctx.fillRect(x-bw/2,y-27,bw,bh);
-  ctx.fillStyle="#ff667d";ctx.fillRect(x-bw/2,y-27,bw*clamp(m.hp/m.maxHp,0,1),bh);
-  ctx.fillStyle="#fff";ctx.font="10px system-ui";ctx.textAlign="center";
-  ctx.fillText(m.type,x,y-32);
-  ctx.restore();
-}
+addEventListener("resize",sizeCanvas);
 function draw(){
-  const rect=canvas.getBoundingClientRect();
-  const w=rect.width,h=rect.height;
-  ctx.clearRect(0,0,w,h);
-  drawBackground(w,h);
-  for(const m of monsters)drawMonster(m,w,h);
-  drawPlayer(w,h);
-  for(const p of particles){
-    ctx.globalAlpha=clamp(p.life/p.max,0,1);
-    ctx.fillStyle=p.color;ctx.font="bold 13px system-ui";ctx.textAlign="center";
-    ctx.fillText(p.text,w/2+p.x-player.x,h/2+p.y-player.y-p.life*25);
+ const r=canvas.getBoundingClientRect(),w=r.width,h=r.height;
+ ctx.clearRect(0,0,w,h);ctx.fillStyle=zone.bg;ctx.fillRect(0,0,w,h);
+ /* 픽셀 잔디 */
+ for(let i=0;i<150;i++){
+  let x=((i*97-p.x*.25)%w+w)%w,y=((i*67-p.y*.25)%h+h)%h;
+  ctx.fillStyle=i%3?"#8ac19b12":"#b4d9a312";ctx.fillRect(x,y,3,3)
+ }
+ for(let m of mobs){
+  let x=w/2+m.x-p.x,y=h/2+m.y-p.y;
+  if(x<-35||x>w+35||y<-35||y>h+35)continue;
+  ctx.fillStyle="#0003";ctx.fillRect(x-9,y+7,18,4);
+  ctx.fillStyle=m.flash>0?"#fff":zone.id==="cave"?"#b2a0dc":"#70e7b5";
+  ctx.fillRect(x-11,y-9,22,18);
+  ctx.fillStyle="#18352e";ctx.fillRect(x-6,y-4,3,3);ctx.fillRect(x+3,y-4,3,3);
+  ctx.fillStyle="#ff6685";ctx.fillRect(x-12,y+13,24,4);
+  ctx.fillStyle="#4a2636";ctx.fillRect(x-12,y+13,24*Math.max(0,m.hp/m.max),4);
+  ctx.fillStyle="#e8e6f1";ctx.font="10px system-ui";ctx.textAlign="center";ctx.fillText(zone.mob,x,y-14)
+ }
+ let x=w/2,y=h/2;
+ ctx.fillStyle="#0004";ctx.fillRect(x-9,y+12,18,4);
+ ctx.fillStyle=s.skin==="blue"?"#55bfff":s.skin==="gold"?"#ffd166":"#b18bff";
+ ctx.fillRect(x-8,y-8,16,19);
+ ctx.fillStyle="#e5b68b";ctx.fillRect(x-7,y-18,14,12);
+ ctx.fillStyle="#393044";ctx.fillRect(x-8,y-21,16,5);
+ ctx.fillStyle="#292238";ctx.fillRect(x-4,y-13,2,2);ctx.fillRect(x+3,y-13,2,2);
+ ctx.fillStyle="#393044";ctx.fillRect(x-7,y+11,5,7);ctx.fillRect(x+2,y+11,5,7);
+ ctx.fillStyle="#eee7a8";ctx.fillRect(x+8,y-7,14,3);ctx.fillRect(x+17,y-10,3,10);
+ if(p.attackAnim>0){ctx.strokeStyle="#fff2c8";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,29,-1,1);ctx.stroke()}
+ for(let e of effects){ctx.globalAlpha=clamp(e.life/.8,0,1);ctx.fillStyle=e.color;ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.fillText(e.text,w/2+e.x-p.x,h/2+e.y-p.y-e.life*20)}
+ ctx.globalAlpha=1
+}
+function input(){
+ let x=joy.x,y=joy.y;
+ if(keys.has("left")||keys.has("a"))x--;
+ if(keys.has("right")||keys.has("d"))x++;
+ if(keys.has("up")||keys.has("w"))y--;
+ if(keys.has("down")||keys.has("s"))y++;
+ for(let d of touchDirections.values()){if(d==="left")x--;if(d==="right")x++;if(d==="up")y--;if(d==="down")y++}
+ let l=Math.hypot(x,y);if(l>1){x/=l;y/=l}return{x,y}
+}
+function frame(t){
+ let dt=Math.min((t-last)/1000||0,.04);last=t;
+ if(!modalOpen){
+  let a=input();p.x+=a.x*175*dt;p.y+=a.y*175*dt;
+  if(a.x||a.y){p.dx=a.x;p.dy=a.y}
+  attackCd=Math.max(0,attackCd-dt);p.attackAnim=Math.max(0,p.attackAnim-dt);
+  for(let m of [...mobs]){
+   m.cd-=dt;m.flash=Math.max(0,m.flash-dt);
+   let dx=p.x-m.x,dy=p.y-m.y,d=Math.hypot(dx,dy)||1;
+   if(d>27){m.x+=dx/d*m.speed*dt;m.y+=dy/d*m.speed*dt}
+   else if(m.cd<=0){if(p.invuln<=0){s.hp-=Math.max(1,zone.atk-s.defense);p.invuln=.5;if(s.hp<=0){s.hp=s.maxHp;s.gold=Math.floor(s.gold*.95);p.x=0;p.y=0;toast("쓰러졌어! 마을에서 부활")}update();save()}m.cd=1.2}
   }
-  ctx.globalAlpha=1;
+  p.invuln=Math.max(0,p.invuln-dt);
+  effects.forEach(e=>e.life-=dt);effects=effects.filter(e=>e.life>0);
+ }
+ draw();requestAnimationFrame(frame)
 }
-function getInput(){
-  let x=joystick.x,y=joystick.y;
-  if(keys.ArrowLeft||keys.a||keys.A)x-=1;
-  if(keys.ArrowRight||keys.d||keys.D)x+=1;
-  if(keys.ArrowUp||keys.w||keys.W)y-=1;
-  if(keys.ArrowDown||keys.s||keys.S)y+=1;
-  const len=Math.hypot(x,y);
-  if(len>1){x/=len;y/=len;}
-  return {x,y};
+function openModal(title,html){
+ modalOpen=true;$("modalTitle").textContent=title;$("modalBody").innerHTML=html;$("modal").classList.add("open")
 }
-function update(dt){
-  attackCooldown=Math.max(0,attackCooldown-dt);
-  skillCooldown=Math.max(0,skillCooldown-dt);
-  player.attackTimer=Math.max(0,player.attackTimer-dt);
-  player.skillTimer=Math.max(0,player.skillTimer-dt);
-  player.invuln=Math.max(0,player.invuln-dt);
-  const input=getInput();
-  if(input.x||input.y){
-    player.dirX=input.x;player.dirY=input.y;
-    player.x+=input.x*190*dt;
-    player.y+=input.y*190*dt;
-  }
-  if(attackHeld && attackCooldown<=0)attack();
-
-  for(const m of [...monsters]){
-    m.cooldown-=dt;
-    m.hitFlash=Math.max(0,m.hitFlash-dt);
-    const dx=player.x-m.x,dy=player.y-m.y,d=Math.hypot(dx,dy)||1;
-    if(d>28){
-      m.x+=(dx/d)*m.speed*dt;
-      m.y+=(dy/d)*m.speed*dt;
-    }else if(m.cooldown<=0){
-      playerHit(m.attack);
-      m.cooldown=1.1;
-    }
-  }
-  for(const p of particles)p.life-=dt;
-  particles=particles.filter(p=>p.life>0);
-}
-function frame(now){
-  if(!lastTime)lastTime=now;
-  const dt=Math.min((now-lastTime)/1000,.04);
-  lastTime=now;
-  if(!panelOpen)update(dt);
-  draw();
-  requestAnimationFrame(frame);
-}
-
-/* ===== 모바일 가상 조이스틱: pointer events로 멀티터치 처리 ===== */
-const joy=$("joy"),knob=$("joyKnob");
-function updateJoystick(e){
-  const r=joy.getBoundingClientRect();
-  const cx=r.left+r.width/2,cy=r.top+r.height/2;
-  let dx=e.clientX-cx,dy=e.clientY-cy;
-  const max=r.width*.34;
-  const len=Math.hypot(dx,dy);
-  if(len>max){dx=dx/len*max;dy=dy/len*max;}
-  joystick.x=dx/max;joystick.y=dy/max;
-  knob.style.left=`calc(50% + ${dx}px)`;
-  knob.style.top=`calc(50% + ${dy}px)`;
-}
-joy.addEventListener("pointerdown",e=>{
-  e.preventDefault();
-  if(joystick.active)return;
-  joystick.active=true;joystick.id=e.pointerId;
-  joy.setPointerCapture(e.pointerId);
-  updateJoystick(e);
-});
-joy.addEventListener("pointermove",e=>{
-  if(!joystick.active||e.pointerId!==joystick.id)return;
-  e.preventDefault();updateJoystick(e);
-});
-function resetJoystick(e){
-  if(!joystick.active||e.pointerId!==joystick.id)return;
-  joystick.active=false;joystick.id=null;joystick.x=0;joystick.y=0;
-  knob.style.left="50%";knob.style.top="50%";
-}
-joy.addEventListener("pointerup",resetJoystick);
-joy.addEventListener("pointercancel",resetJoystick);
-joy.addEventListener("lostpointercapture",()=>{
-  joystick.active=false;joystick.id=null;joystick.x=0;joystick.y=0;
-  knob.style.left="50%";knob.style.top="50%";
-});
-
-$("attackBtn").addEventListener("pointerdown",e=>{
-  e.preventDefault();attackHeld=true;attackPointer=e.pointerId;
-  $("attackBtn").setPointerCapture(e.pointerId);attack();
-});
-function releaseAttack(e){
-  if(attackPointer!==e.pointerId)return;
-  attackHeld=false;attackPointer=null;
-}
-$("attackBtn").addEventListener("pointerup",releaseAttack);
-$("attackBtn").addEventListener("pointercancel",releaseAttack);
-$("attackBtn").addEventListener("lostpointercapture",()=>{attackHeld=false;attackPointer=null;});
-
-$("skillBtn").addEventListener("pointerdown",e=>{
-  e.preventDefault();skillPointer=e.pointerId;skill();
-});
-$("potionBtn").addEventListener("pointerdown",e=>{
-  e.preventDefault();usePotion();
-});
-
-/* PC 키보드도 지원 */
-window.addEventListener("keydown",e=>{
-  const k=e.key;
-  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(k))e.preventDefault();
-  keys[k]=true;
-  if(k===" "&&!e.repeat)attack();
-  if(k==="q"||k==="Q")usePotion();
-  if(k==="e"||k==="E")skill();
-});
-window.addEventListener("keyup",e=>{keys[e.key]=false;});
-window.addEventListener("blur",()=>{
-  keys={};attackHeld=false;
-  joystick.active=false;joystick.id=null;joystick.x=0;joystick.y=0;
-  knob.style.left="50%";knob.style.top="50%";
-});
-document.addEventListener("contextmenu",e=>e.preventDefault());
-
-/* ===== 메뉴 및 골드 상점 ===== */
-function openPanel(title,html){
-  panelOpen=true;
-  $("panelTitle").textContent=title;
-  $("panelContent").innerHTML=html;
-  $("panel").classList.add("open");
-}
-function closePanel(){
-  panelOpen=false;
-  $("panel").classList.remove("open");
-}
-$("closePanel").addEventListener("click",closePanel);
-$("panel").addEventListener("pointerdown",e=>{
-  if(e.target===$("panel"))closePanel();
-});
-document.querySelectorAll("nav button").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    const menu=btn.dataset.menu;
-    if(menu==="zones")showZones();
-    if(menu==="goldshop")showGoldShop();
-    if(menu==="premium")showPremiumShop();
-    if(menu==="inventory")showInventory();
-    if(menu==="status")showStatus();
-  });
-});
+function closeModal(){modalOpen=false;$("modal").classList.remove("open")}
+$("closeModal").onclick=closeModal;
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
+$("zoneOpen").onclick=()=>showZones();
 function showZones(){
-  const html=`<div class="cards">${ZONES.map(z=>{
-    const unlocked=zoneUnlocked(z);
-    const current=z.id===currentZone.id;
-    return `<div class="card">
-      <div class="emoji">${z.icon}</div>
-      <h3>${z.name}</h3>
-      <span class="tag">${unlocked?(current?"현재 사냥터":"입장 가능"):"Lv."+z.min+" 필요"}</span>
-      <p>${z.desc}<br>몬스터: ${z.mob}<br>경험치: ${z.xp} · 골드: ${z.gold}</p>
-      <button data-zone="${z.id}" ${!unlocked||current?"disabled":""}>${current?"입장 중":unlocked?"이 사냥터로 이동":"레벨 부족"}</button>
-    </div>`;
-  }).join("")}</div>`;
-  openPanel("🗺 사냥터 선택",html);
-  $("panelContent").querySelectorAll("[data-zone]").forEach(b=>{
-    b.addEventListener("click",()=>setZone(b.dataset.zone));
-  });
+ openModal("사냥터 선택",`<div class="cards">${zones.map(z=>`<div class="item">
+ <div class="itemicon">${z.id==="field"?"🌱":z.id==="forest"?"🌲":"🕳️"}</div>
+ <h3>${z.name}</h3><p>권장 레벨 ${z.min}<br>몬스터: ${z.mobs}<br>경험치 ${z.xp} · 골드 ${z.gold}</p>
+ <button class="${z.id===zone.id?"":"primary"}" data-zone="${z.id}" ${s.level<z.min||z.id===zone.id?"disabled":""}>${z.id===zone.id?"현재 사냥터":s.level<z.min?"레벨 부족":"입장하기"}</button>
+ </div>`).join("")}</div>`);
+ document.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>setZone(b.dataset.zone))
 }
-function buyGoldItem(id){
-  const item=SHOP.find(x=>x.id===id);
-  if(!item)return;
-  if(state.gold<item.price){toast("골드가 부족해!");return;}
-  state.gold-=item.price;
-  if(id==="potion")state.potions++;
-  if(id==="stone")state.stones++;
-  if(id==="sword"){
-    if(state.weapon==="철검"){toast("이미 철검을 가지고 있어!");state.gold+=item.price;return;}
-    state.weapon="철검";state.attack+=8;
-  }
-  if(id==="boost")state.expBoost+=20;
-  if(id==="goldboost")state.goldBoost+=20;
-  updateUI();save();showGoldShop();
-  toast(item.name+" 구매 완료!");
+function showShop(){
+ openModal("골드 상점",`<p class="note">보유 골드: 🪙 <b>${s.gold}</b></p><div class="cards">${goods.map(g=>`<div class="item">
+ <div class="itemicon">${g.icon}</div><h3>${g.name}</h3><p>${g.desc}</p><div class="price">🪙 ${g.price} G</div>
+ <button class="primary" data-buy="${g.id}">구매하기</button></div>`).join("")}</div>`);
+ document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(b.dataset.buy))
 }
-function showGoldShop(){
-  const html=`<p class="muted">보유 골드: <b class="gold">${state.gold} G</b></p>
-  <div class="cards">${SHOP.map(i=>`<div class="card">
-    <div class="emoji">${i.icon}</div><h3>${i.name}</h3><p>${i.desc}</p>
-    <button data-buy="${i.id}">🪙 ${i.price} G 구매</button>
-  </div>`).join("")}</div>
-  <div id="notice">골드는 몬스터를 처치하면 얻을 수 있어. 이 상점의 구매 처리는 현재 기기 안에서만 저장돼.</div>`;
-  openPanel("🪙 골드 상점",html);
-  $("panelContent").querySelectorAll("[data-buy]").forEach(b=>{
-    b.addEventListener("click",()=>buyGoldItem(b.dataset.buy));
-  });
+function buy(id){
+ const g=goods.find(x=>x.id===id);if(!g)return;
+ if(s.gold<g.price)return toast("골드가 부족해!");
+ if(id==="sword"&&s.weapon==="철검")return toast("이미 철검을 가지고 있어!");
+ s.gold-=g.price;
+ if(id==="potion")s.potions++;
+ if(id==="stone")s.stones++;
+ if(id==="sword"){s.weapon="철검";s.attack+=8}
+ if(id==="exp")s.expBoost+=20;
+ if(id==="goldboost")s.goldBoost+=20;
+ save();update();showShop();toast(g.name+" 구매 완료")
 }
-
-/* ===== 유료 상점 =====
-   상품 목록만 표시한다. 구매 버튼은 실제 결제 서버가 준비되기 전까지
-   결제를 진행하거나 재화를 지급하지 않는다.
-*/
-function showPremiumShop(){
-  const html=`<p class="muted">보유 유료 재화: <b class="gold">${state.gems} 💎</b></p>
-  <div class="cards">${PREMIUM.map(i=>`<div class="card">
-    <div class="emoji">${i.icon}</div>
-    <h3>${i.name}</h3><p>${i.desc}</p>
-    <span class="tag">${i.price}</span>
-    <button data-premium="${i.id}">상품 보기</button>
-  </div>`).join("")}</div>
-  <div id="notice"><b>실제 결제 준비 상태</b><br>
-  현재는 상품 목록 UI만 구현되어 있어. 실제 결제와 상품 지급은 비활성 상태야.
-  결제 서버가 준비되지 않은 상태에서 가짜로 결제 완료 처리하지 않아.
-  </div>`;
-  openPanel("💎 프리미엄 상점",html);
-  $("panelContent").querySelectorAll("[data-premium]").forEach(b=>{
-    b.addEventListener("click",()=>{
-      const item=PREMIUM.find(i=>i.id===b.dataset.premium);
-      if(!item)return;
-      openPanel(item.name,`
-        <div class="card">
-          <div class="emoji">${item.icon}</div>
-          <h3>${item.name}</h3><p>${item.desc}</p>
-          <h3 class="gold">${item.price}</h3>
-          <p>실제 결제 서버가 연결되지 않아 현재 구매할 수 없어.</p>
-          <button id="payDisabled" disabled>결제 서버 연결 필요</button>
-          <button id="backPremium" style="margin-top:8px">상품 목록으로</button>
-        </div>
-        <div id="notice">안전한 결제를 위해 서버에서 주문을 생성하고, 결제업체의 검증 결과를 확인한 뒤 상품을 지급해야 해. 브라우저에서 결제 성공 여부를 임의로 지정하지 않아.</div>
-      `);
-      $("backPremium").addEventListener("click",showPremiumShop);
-    });
-  });
+function showPremium(){
+ openModal("프리미엄 상점",`<p class="note">💎 보유 재화: ${s.gems}<br>상품은 표시되지만 실제 결제는 아직 연결되지 않았어.</p>
+ <div class="cards">${paidGoods.map(g=>`<div class="item">
+ <div class="itemicon">${g.icon}</div><h3>${g.name}</h3><p>${g.desc}</p><div class="price">${g.price}</div>
+ <button data-paid="${g.id}">상품 정보</button></div>`).join("")}</div>
+ <div class="note">실제 판매에는 결제 제공업체, 서버 주문 생성, 결제 검증 및 계정별 상품 지급이 필요해. 지금은 결제 완료로 위장하거나 유료 재화를 지급하지 않아.</div>`);
+ document.querySelectorAll("[data-paid]").forEach(b=>b.onclick=()=>{
+  let g=paidGoods.find(x=>x.id===b.dataset.paid);
+  openModal(g.name,`<div class="item"><div class="itemicon">${g.icon}</div><h3>${g.name}</h3><p>${g.desc}</p><div class="price">${g.price}</div>
+  <button disabled class="wide">결제 서버 연결 필요</button>
+  <div class="note">아직 실제 구매는 불가능해. 서버 결제 검증을 연결한 뒤 활성화해야 해.</div>
+  <button class="wide" id="back">상품 목록으로</button></div>`);
+  $("back").onclick=showPremium
+ })
 }
-
-/* ===== 인벤토리 및 캐릭터 ===== */
 function showInventory(){
-  openPanel("🎒 가방",`
-    <div class="list">
-      <div class="listItem"><div>⚔️ <b>${state.weapon}</b><p>현재 무기 · 공격력 ${state.attack}</p></div><span>장착 중</span></div>
-      <div class="listItem"><div>🧪 <b>회복 물약</b><p>체력 회복용 소모품</p></div><b>×${state.potions}</b></div>
-      <div class="listItem"><div>💠 <b>강화석</b><p>무기 강화에 사용</p></div><b>×${state.stones}</b></div>
-      <div class="listItem"><div>📘 <b>경험치 부스트</b><p>남은 처치 횟수</p></div><b>×${state.expBoost}</b></div>
-      <div class="listItem"><div>🪙 <b>골드 부스트</b><p>남은 처치 횟수</p></div><b>×${state.goldBoost}</b></div>
-      <div class="listItem"><div>👕 <b>스킨</b><p>현재 외형</p></div><b>${state.skin}</b></div>
-    </div>
-    <button id="upgradeBtn" style="width:100%;margin-top:10px">💠 강화석 1개로 무기 강화</button>
-    <div id="notice">강화할 때마다 공격력이 3 증가해. 강화석이 필요해.</div>
-  `);
-  $("upgradeBtn").addEventListener("click",()=>{
-    if(state.stones<1){toast("강화석이 부족해!");return;}
-    state.stones--;state.weaponLevel++;state.attack+=3;
-    save();updateUI();showInventory();toast("무기 강화 성공!");
-  });
+ openModal("인벤토리",`<div class="rows">
+ <div class="entry"><div>⚔️ <b>${s.weapon}</b><small>공격력 ${s.attack} · 강화 +${s.weaponLevel}</small></div><span>장착</span></div>
+ <div class="entry"><div>🧪 <b>회복 물약</b><small>체력을 회복한다</small></div><b>${s.potions}개</b></div>
+ <div class="entry"><div>💠 <b>강화석</b><small>무기 강화 재료</small></div><b>${s.stones}개</b></div>
+ <div class="entry"><div>👕 <b>스킨</b><small>현재 외형</small></div><b>${s.skin==="default"?"기본":s.skin}</b></div>
+ </div>`)
 }
-function showStatus(){
-  openPanel("📊 캐릭터 정보",`
-    <div class="card">
-      <div class="row"><b>레벨</b><b>Lv.${state.level}</b></div>
-      <p>다음 레벨까지 경험치 ${state.xp}/${xpNeed()}</p>
-      <div class="row"><b>체력</b><b>${state.hp}/${state.maxHp}</b></div>
-      <div class="row"><b>공격력</b><b>${state.attack}</b></div>
-      <div class="row"><b>무기</b><b>${state.weapon} +${state.weaponLevel}</b></div>
-      <div class="row"><b>처치한 몬스터</b><b>${state.kills}</b></div>
-      <div class="row"><b>골드</b><b class="gold">${state.gold}</b></div>
-      <div class="row"><b>유료 재화</b><b>${state.gems}</b></div>
-    </div>
-    <div id="notice">현재 캐릭터 정보는 브라우저 저장소에 저장돼. 앱 데이터 삭제, 브라우저 데이터 삭제 또는 다른 기기에서는 진행 상황이 유지되지 않을 수 있어.</div>
-  `);
+function showUpgrade(){
+ openModal("무기 강화",`<div class="item"><div class="itemicon">⚒️</div><h3>${s.weapon} +${s.weaponLevel}</h3>
+ <p>강화석을 사용해 공격력을 높여.</p><div class="price">보유 강화석: ${s.stones}개</div>
+ <button class="primary wide" id="upgrade">강화하기 · 강화석 1개</button></div>`);
+ $("upgrade").onclick=()=>{
+  if(s.stones<1)return toast("강화석이 부족해!");
+  s.stones--;s.weaponLevel++;s.attack+=3;save();update();showUpgrade();toast("강화 성공! 공격력 +3")
+ }
 }
+$("shopBtn").onclick=showShop;$("premiumBtn").onclick=showPremium;
+$("inventoryBtn").onclick=showInventory;$("statusBtn").onclick=showUpgrade;
 
-/* 게임 초기화 */
-resizeCanvas();
-player.x=Number(state.x)||0;
-player.y=Number(state.y)||0;
-spawnMonsters(10);
-updateUI();
-requestAnimationFrame(frame);
+/* 방향 버튼: 누르는 동안 계속 이동하며 여러 버튼 터치도 지원 */
+document.querySelectorAll("[data-dir]").forEach(b=>{
+ const dir=b.dataset.dir;
+ const down=e=>{e.preventDefault();touchDirections.set(e.pointerId,dir);try{b.setPointerCapture(e.pointerId)}catch(_){}};
+ const up=e=>{touchDirections.delete(e.pointerId)};
+ b.addEventListener("pointerdown",down);b.addEventListener("pointerup",up);
+ b.addEventListener("pointercancel",up);b.addEventListener("lostpointercapture",up);
+});
 
-/* 메뉴가 열린 동안 게임은 멈추지만 캔버스 렌더링은 계속된다. */
+/* 화면에 표시되지 않는 영역에서 드래그해도 작동하는 가상 조이스틱 */
+canvas.addEventListener("pointerdown",e=>{
+ if(e.clientX>innerWidth*.45)return;
+ if(joy.id!==null)return;
+ joy.id=e.pointerId;canvas.setPointerCapture(e.pointerId);moveJoy(e)
+});
+function moveJoy(e){
+ if(joy.id!==e.pointerId)return;
+ const r=canvas.getBoundingClientRect(),cx=r.left+r.width*.22,cy=r.top+r.height*.65;
+ let dx=e.clientX-cx,dy=e.clientY-cy,l=Math.hypot(dx,dy),max=55;
+ if(l>max){dx=dx/l*max;dy=dy/l*max}
+ joy.x=dx/max;joy.y=dy/max
+}
+canvas.addEventListener("pointermove",e=>moveJoy(e));
+function stopJoy(e){if(joy.id===e.pointerId){joy.id=null;joy.x=0;joy.y=0}}
+canvas.addEventListener("pointerup",stopJoy);canvas.addEventListener("pointercancel",stopJoy);
+
+$("attackBtn").addEventListener("pointerdown",e=>{e.preventDefault();attackPointers.add(e.pointerId);attack()});
+function stopAttack(e){attackPointers.delete(e.pointerId)}
+$("attackBtn").addEventListener("pointerup",stopAttack);
+$("attackBtn").addEventListener("pointercancel",stopAttack);
+
+/* 키보드 지원 */
+addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
+ if(["w","arrowup"].includes(k))keys.add("up");
+ if(["s","arrowdown"].includes(k))keys.add("down");
+ if(["a","arrowleft"].includes(k))keys.add("left");
+ if(["d","arrowright"].includes(k))keys.add("right");
+ if(k===" "&&!e.repeat)attack();
+ if(k==="q"&&!e.repeat)potion()
+});
+addEventListener("keyup",e=>{
+ const k=e.key.toLowerCase();
+ if(["w","arrowup"].includes(k))keys.delete("up");
+ if(["s","arrowdown"].includes(k))keys.delete("down");
+ if(["a","arrowleft"].includes(k))keys.delete("left");
+ if(["d","arrowright"].includes(k))keys.delete("right")
+});
+addEventListener("blur",()=>{keys.clear();touchDirections.clear();joy.id=null;joy.x=0;joy.y=0;attackPointers.clear()});
+addEventListener("contextmenu",e=>e.preventDefault());
+sizeCanvas();spawn(9);update();requestAnimationFrame(frame);
 </script>
 </body>
 </html>
