@@ -1,0 +1,440 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10101b">
+<title>시볼의 검</title>
+<style>
+:root{color-scheme:dark;--bg:#0d0e17;--panel:#191b2b;--line:#34364e;--purple:#a18aff;--mint:#70efbd;--gold:#ffd477}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#30294e,#0d0e17 55%);color:#f4f2ff;font:14px system-ui,"Noto Sans KR",sans-serif}
+button,input{font:inherit}
+button{color:#f5f2ff;background:#272940;border:1px solid #464866;border-radius:10px;padding:10px;cursor:pointer}
+button:disabled{opacity:.4}
+button:active{transform:scale(.98)}
+.primary{background:var(--purple);color:#151020;font-weight:900}
+.app{max-width:1100px;margin:auto;padding:12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.logo{font-size:27px;font-weight:1000;letter-spacing:-1px}
+.logo small{display:block;font-size:10px;letter-spacing:2px;color:#a5a6c1}
+.pill{background:#191b2b;border:1px solid var(--line);border-radius:30px;padding:8px 11px;font-size:12px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px}
+.box,.panel{background:linear-gradient(150deg,#1c1e30,#121420);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+.gamehead{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--line);gap:8px}
+.gamehead strong{font-size:15px}
+.muted{font-size:12px;color:#a6a8c0}
+canvas{display:block;width:100%;height:auto;aspect-ratio:4/3;image-rendering:pixelated;background:#293c36;touch-action:none}
+.canvaswrap{position:relative}
+.hud{position:absolute;top:9px;left:9px;width:min(230px,60%);padding:9px;background:#0b0d18df;border:1px solid #45465f;border-radius:9px;pointer-events:none}
+.hudrow{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.bar{height:7px;background:#373348;margin-bottom:6px}
+.bar i{display:block;height:100%;background:#ff657e}
+.bar.xp i{background:#8e80ff}
+.controls{display:flex;flex-wrap:wrap;gap:6px;padding:10px;border-top:1px solid var(--line)}
+.controls button{flex:1}
+.mobile{display:flex;gap:4px}
+.side{display:flex;flex-direction:column;gap:12px}
+.panel{padding:13px}
+h2{font-size:14px;margin:0 0 10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stat{padding:9px;background:#10121e;border:1px solid #2b2e43;border-radius:9px}
+.stat span{display:block;color:#a6a8c0;font-size:11px}
+.stat b{font-size:18px}
+.shop{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;margin:6px 0;gap:8px}
+.shop small{display:block;color:#a6a8c0;font-size:11px}
+.inventory{display:flex;flex-wrap:wrap;gap:6px}
+.item{font-size:12px;padding:7px;border:1px solid #4a4b64}
+.common{color:#eee}.rare{color:#83d5ff;border-color:#4187bd}
+.epic{color:#d1a4ff;border-color:#9863ce}
+.legendary{color:#ffe19a;border-color:#d3a746}
+.feed{max-height:150px;overflow:auto}
+.feed div{padding:7px 0;border-bottom:1px solid #2c2e42;font-size:12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292640;border:1px solid #665d91;border-radius:10px;padding:11px 15px;z-index:5}
+footer{text-align:center;color:#777b98;font-size:11px;padding:17px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
+@media(max-width:480px){.app{padding:7px}.side{grid-template-columns:1fr}.wide{grid-column:auto}.logo{font-size:23px}.controls{padding:7px}.hud{padding:7px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">시볼의 검<small>볼 게임 아카이브 · ONLINE HUNT</small></div>
+  <div class="pill">골드 <b id="topGold">0</b></div>
+</header>
+
+<div class="layout">
+<main class="box">
+  <div class="gamehead">
+    <div><strong id="zoneName">초보자의 들판</strong><div class="muted" id="zoneDesc">슬라임을 사냥하고 검을 성장시키자.</div></div>
+    <button id="changeZone">사냥터 변경</button>
+  </div>
+  <div class="canvaswrap">
+    <canvas id="game" width="640" height="480"></canvas>
+    <div class="hud">
+      <div class="hudrow"><b id="hudName">검객</b><span id="hudLevel">Lv.1</span></div>
+      <div class="bar"><i id="hpBar" style="width:100%"></i></div>
+      <div class="hudrow"><span id="hpText">HP 100/100</span><span id="atkText">공격 10</span></div>
+      <div class="bar xp"><i id="xpBar" style="width:0%"></i></div>
+      <div class="hudrow"><span id="xpText">EXP 0/30</span><span id="weaponText">나무 검</span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="mobile">
+      <button data-move="up">위</button><button data-move="left">왼쪽</button>
+      <button data-move="down">아래</button><button data-move="right">오른쪽</button>
+    </div>
+    <button id="potion">물약 (Q)</button>
+    <button id="attack" class="primary">검 휘두르기</button>
+  </div>
+  <div style="padding:0 12px 12px" class="muted">이동: WASD 또는 방향키 · 공격: Space · 물약: Q</div>
+</main>
+
+<aside class="side">
+  <section class="panel">
+    <h2>캐릭터 상태</h2>
+    <div class="stats">
+      <div class="stat"><span>레벨</span><b id="level">1</b></div>
+      <div class="stat"><span>공격력</span><b id="attackStat">10</b></div>
+      <div class="stat"><span>방어력</span><b id="defense">1</b></div>
+      <div class="stat"><span>물약</span><b id="potions">3</b></div>
+    </div>
+    <p class="muted" id="summary">몬스터를 처치해 경험치와 골드를 모으세요.</p>
+  </section>
+
+  <section class="panel">
+    <h2>대장간과 소환</h2>
+    <button class="shop" id="upgrade"><span>검 강화<small>공격력 +3</small></span><b id="upgradeCost">30 G</b></button>
+    <button class="shop" id="craft"><span>재료 검 제작<small id="materials">슬라임 젤리 0/4</small></span><b>제작</b></button>
+    <button class="shop" id="summon"><span>검 소환<small>희귀 검 확률 획득</small></span><b>100 G</b></button>
+    <button class="shop" id="buyPotion"><span>물약 구매<small>회복 물약 +1</small></span><b>20 G</b></button>
+    <p class="muted">검 희귀도: 일반 · 희귀 · 영웅 · 전설</p>
+  </section>
+
+  <section class="panel">
+    <h2>검 보관함 <span id="swordCount" class="muted">1종</span></h2>
+    <div id="inventory" class="inventory"></div>
+  </section>
+
+  <section class="panel wide">
+    <h2>전투 기록</h2>
+    <div id="log" class="feed"></div>
+    <button id="rank" style="width:100%;margin-top:10px">온라인 랭킹 안내</button>
+    <p class="muted">진행 상황은 현재 세션에만 유지됩니다. 새로고침하면 초기화됩니다.</p>
+  </section>
+</aside>
+</div>
+<footer>시볼의 검 · 볼 게임 아카이브</footer>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const canvas=$("game"),ctx=canvas.getContext("2d");
+ctx.imageSmoothingEnabled=false;
+
+const zones=[
+ {name:"초보자의 들판",desc:"슬라임과 들개",bg:"#263d37",ground:"#365548",mobs:["슬라임","들개"],level:1},
+ {name:"잊힌 폐허",desc:"해골 전사와 박쥐",bg:"#373044",ground:"#51415b",mobs:["해골 전사","박쥐"],level:3},
+ {name:"용암 협곡",desc:"화염 정령과 용아병",bg:"#492e2b",ground:"#694039",mobs:["화염 정령","용아병"],level:6}
+];
+const swords=[
+ {name:"나무 검",rarity:"common",atk:0,color:"#d9b17b"},
+ {name:"슬라임 칼날",rarity:"common",atk:5,color:"#80e3b0"},
+ {name:"푸른 초승달",rarity:"rare",atk:12,color:"#79caff"},
+ {name:"황혼의 파쇄검",rarity:"epic",atk:25,color:"#c29aff"},
+ {name:"시볼의 성검",rarity:"legendary",atk:48,color:"#ffdc78"}
+];
+const monsterDefs={
+ "슬라임":{hp:24,atk:5,xp:9,gold:5,mat:1,color:"#6de5ad",speed:23,size:12,range:25},
+ "들개":{hp:34,atk:8,xp:13,gold:8,mat:0,color:"#d6a56f",speed:43,size:12,range:28},
+ "해골 전사":{hp:75,atk:13,xp:24,gold:16,mat:0,color:"#d5d8d0",speed:28,size:14,range:30},
+ "박쥐":{hp:40,atk:10,xp:18,gold:12,mat:0,color:"#bda2ff",speed:52,size:10,range:24},
+ "화염 정령":{hp:125,atk:19,xp:42,gold:29,mat:0,color:"#ff855f",speed:32,size:15,range:35},
+ "용아병":{hp:190,atk:27,xp:62,gold:45,mat:0,color:"#e2b5a0",speed:25,size:17,range:38}
+};
+const player={
+ name:"검객",x:320,y:245,hp:100,maxHp:100,level:1,xp:0,gold:0,
+ baseAtk:10,def:1,potions:3,upgrade:0,zone:0,materials:0,kills:0,
+ score:0,owned:[0],weapon:0,attackCd:0,invincible:0,dead:0
+};
+let mobs=[],particles=[],keys={},touch={x:0,y:0},face={x:1,y:0};
+let last=0,spawnTimer=0,logs=[];
+
+function message(text){
+ $("toast").textContent=text;
+ $("toast").hidden=false;
+ clearTimeout(message.timer);
+ message.timer=setTimeout(()=>$("toast").hidden=true,2200);
+}
+function addLog(text){
+ logs.unshift(text);logs=logs.slice(0,12);
+ $("log").innerHTML=logs.map(x=>"<div>"+escapeHtml(x)+"</div>").join("");
+}
+function escapeHtml(text){
+ return String(text).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function xpNeeded(){return 30+(player.level-1)*18}
+function attackPower(){return player.baseAtk+swords[player.weapon].atk}
+
+function updateUI(){
+ const p=player;
+ $("topGold").textContent=p.gold;
+ $("hudName").textContent=p.name;
+ $("hudLevel").textContent="Lv."+p.level;
+ $("hpText").textContent=`HP ${p.hp}/${p.maxHp}`;
+ $("hpBar").style.width=(p.hp/p.maxHp*100)+"%";
+ $("xpText").textContent=`EXP ${p.xp}/${xpNeeded()}`;
+ $("xpBar").style.width=(p.xp/xpNeeded()*100)+"%";
+ $("atkText").textContent="공격 "+attackPower();
+ $("weaponText").textContent=swords[p.weapon].name;
+ $("level").textContent=p.level;
+ $("attackStat").textContent=attackPower();
+ $("defense").textContent=p.def;
+ $("potions").textContent=p.potions;
+ $("zoneName").textContent=zones[p.zone].name;
+ $("zoneDesc").textContent=zones[p.zone].desc;
+ $("upgradeCost").textContent=(30+p.upgrade*25)+" G";
+ $("upgrade").disabled=p.gold<30+p.upgrade*25;
+ $("craft").disabled=p.materials<4||p.owned.includes(1);
+ $("materials").textContent=`슬라임 젤리 ${p.materials}/4`;
+ $("summon").disabled=p.gold<100;
+ $("buyPotion").disabled=p.gold<20;
+ $("swordCount").textContent=p.owned.length+"종";
+ $("summary").textContent=`처치 ${p.kills}마리 · 재료 ${p.materials}개 · 점수 ${p.score}`;
+ $("inventory").innerHTML=p.owned.map(i=>
+  `<button class="item ${swords[i].rarity}" data-sword="${i}">${swords[i].name}${p.weapon===i?" · 장착":""}</button>`
+ ).join("");
+ document.querySelectorAll("[data-sword]").forEach(b=>{
+  b.onclick=()=>{p.weapon=Number(b.dataset.sword);updateUI()}
+ });
+}
+function burst(x,y,color,count=8){
+ for(let i=0;i<count;i++){
+  const a=Math.random()*Math.PI*2,v=20+Math.random()*80;
+  particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.3+Math.random()*.4,color,size:2+Math.random()*3});
+ }
+}
+function spawnMonster(){
+ const type=zones[player.zone].mobs[Math.random()*zones[player.zone].mobs.length|0];
+ const d=monsterDefs[type],a=Math.random()*Math.PI*2,r=180+Math.random()*100;
+ mobs.push({
+  type,x:Math.max(25,Math.min(615,player.x+Math.cos(a)*r)),
+  y:Math.max(25,Math.min(455,player.y+Math.sin(a)*r)),
+  hp:d.hp,maxHp:d.hp,atk:d.atk,xp:d.xp,gold:d.gold,mat:d.mat,
+  color:d.color,speed:d.speed,size:d.size,range:d.range,
+  cd:Math.random(),wind:0,flash:0
+ });
+}
+function killMonster(m){
+ const p=player;
+ p.kills++;p.score+=m.xp*10;p.xp+=m.xp;p.gold+=m.gold;p.materials+=m.mat;
+ if(Math.random()<.07)p.potions++;
+ burst(m.x,m.y,m.color,14);
+ addLog(`${m.type} 처치 · ${m.gold} G`);
+ while(p.xp>=xpNeeded()){
+  p.xp-=xpNeeded();p.level++;p.maxHp+=12;p.hp=p.maxHp;p.baseAtk+=2;p.def++;
+  addLog("레벨 업! Lv."+p.level);message("레벨 업! 능력치 상승");
+ }
+ updateUI();
+}
+function attack(){
+ const p=player;
+ if(p.attackCd>0||p.dead>0)return;
+ p.attackCd=.36;
+ const hits=mobs.filter(m=>Math.hypot(m.x-p.x,m.y-p.y)<58)
+  .sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)).slice(0,3);
+ for(const m of hits){
+  m.hp-=Math.max(1,attackPower()+(Math.random()*5|0));
+  m.flash=.12;burst(m.x,m.y,swords[p.weapon].color,5);
+  if(m.hp<=0)killMonster(m);
+ }
+ mobs=mobs.filter(m=>m.hp>0);
+ if(!hits.length)burst(p.x+face.x*25,p.y+face.y*25,swords[p.weapon].color,3);
+ updateUI();
+}
+function takeDamage(m){
+ const p=player;
+ if(p.invincible>0||p.dead>0)return;
+ p.hp=Math.max(0,p.hp-Math.max(1,m.atk-p.def));
+ p.invincible=.55;burst(p.x,p.y,"#ff7188",4);
+ if(p.hp<=0){
+  p.dead=2.4;p.gold=Math.floor(p.gold*.85);
+  message("쓰러졌습니다. 골드 일부를 잃었습니다.");
+ }
+ updateUI();
+}
+function usePotion(){
+ const p=player;
+ if(!p.potions){message("물약이 없습니다.");return}
+ if(p.hp===p.maxHp){message("체력이 가득 찼습니다.");return}
+ p.potions++;
+ p.potions--;
+ const amount=Math.min(p.maxHp-p.hp,Math.floor(p.maxHp*.42));
+ p.hp+=amount;p.potions--;
+ message("체력 "+amount+" 회복");
+ updateUI();
+}
+function changeZone(){
+ const next=(player.zone+1)%zones.length;
+ if(player.level<zones[next].level){message("레벨 "+zones[next].level+"부터 입장할 수 있습니다.");return}
+ player.zone=next;mobs=[];spawnTimer=0;updateUI();
+ message(zones[next].name+" 입장");
+}
+
+$("attack").onclick=attack;
+$("potion").onclick=usePotion;
+$("changeZone").onclick=changeZone;
+$("upgrade").onclick=()=>{
+ const cost=30+player.upgrade*25;
+ if(player.gold<cost)return;
+ player.gold-=cost;player.upgrade++;player.baseAtk+=3;
+ addLog("검 강화 · 공격력 +3");updateUI();
+};
+$("craft").onclick=()=>{
+ if(player.materials<4||player.owned.includes(1))return;
+ player.materials-=4;player.owned.push(1);player.weapon=1;
+ addLog("슬라임 칼날 제작 완료");updateUI();
+};
+$("summon").onclick=()=>{
+ if(player.gold<100)return;
+ player.gold-=100;
+ const r=Math.random();
+ const i=r<.58?0:r<.84?1:r<.96?2:r<.995?3:4;
+ if(player.owned.includes(i)){
+  player.gold+=[15,25,40,65,100][i];
+  message("중복 검 획득 · 골드 일부 환급");
+ }else{
+  player.owned.push(i);player.weapon=i;
+  addLog("새 검 획득 · "+swords[i].name);
+  message(swords[i].name+" 획득!");
+ }
+ updateUI();
+};
+$("buyPotion").onclick=()=>{
+ if(player.gold<20)return;
+ player.gold-=20;player.potions++;updateUI();message("물약 구매 완료");
+};
+$("rank").onclick=()=>message("온라인 랭킹은 Supabase 테이블과 서버 검증을 연결해야 합니다.");
+
+document.addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
+ keys[k]=true;
+ if(k===" "&&!e.repeat)attack();
+ if(k==="q"&&!e.repeat)usePotion();
+});
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+
+document.querySelectorAll("[data-move]").forEach(b=>{
+ const dir={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[b.dataset.move];
+ const stop=e=>{e.preventDefault();touch={x:0,y:0}};
+ b.addEventListener("pointerdown",e=>{
+  e.preventDefault();touch={x:dir[0],y:dir[1]};b.setPointerCapture(e.pointerId);
+ });
+ b.addEventListener("pointerup",stop);
+ b.addEventListener("pointercancel",stop);
+});
+
+function draw(){
+ const w=canvas.width,h=canvas.height,p=player,z=zones[p.zone];
+ ctx.fillStyle=z.ground;ctx.fillRect(0,0,w,h);
+ for(let y=8;y<h;y+=32)for(let x=8;x<w;x+=32){
+  const v=(x*13+y*7+p.zone*31)%9;
+  if(v<3){ctx.fillStyle=v===0?"#ffffff0a":"#10151b17";ctx.fillRect(x,y,4,4)}
+ }
+ ctx.strokeStyle="#ded6ff22";ctx.beginPath();ctx.arc(p.x,p.y,55,0,Math.PI*2);ctx.stroke();
+
+ for(const m of mobs){
+  ctx.save();ctx.translate(m.x|0,m.y|0);
+  ctx.fillStyle="#0007";ctx.fillRect(-m.size,-m.size+5,m.size*2,5);
+  ctx.fillStyle=m.flash>0?"#fff":m.color;
+  if(m.type==="슬라임"){
+   ctx.fillRect(-m.size,-m.size/2,m.size*2,m.size);
+   ctx.fillRect(-m.size+3,-m.size/2-4,m.size*2-6,4);
+  }else{
+   ctx.fillRect(-m.size+2,-m.size,m.size*2-4,m.size*2);
+   ctx.fillRect(-m.size-3,-m.size+2,5,m.size);
+   ctx.fillRect(m.size-2,-m.size+2,5,m.size);
+  }
+  ctx.fillStyle="#171622";ctx.fillRect(-5,-2,3,3);ctx.fillRect(3,-2,3,3);
+  ctx.fillStyle="#12121b";ctx.fillRect(-m.size,m.size+5,m.size*2,4);
+  ctx.fillStyle="#ff657a";ctx.fillRect(-m.size,m.size+5,m.size*2*Math.max(0,m.hp/m.maxHp),4);
+  ctx.fillStyle="#fff";ctx.font="10px system-ui";ctx.textAlign="center";
+  ctx.fillText(m.type,0,-m.size-10);
+  if(m.wind>0){ctx.strokeStyle="#ffcf78";ctx.lineWidth=2;ctx.strokeRect(-m.size-4,-m.size-4,m.size*2+8,m.size*2+8)}
+  ctx.restore();
+ }
+
+ // Player sprite
+ ctx.fillStyle="#0008";ctx.fillRect(p.x-10,p.y+13,20,5);
+ ctx.fillStyle="#e8c6a5";ctx.fillRect(p.x-6,p.y-18,12,10);
+ ctx.fillStyle="#372947";ctx.fillRect(p.x-7,p.y-21,14,5);
+ ctx.fillStyle="#9b82ff";ctx.fillRect(p.x-8,p.y-8,16,14);
+ ctx.fillStyle="#34324c";ctx.fillRect(p.x-7,p.y+6,5,9);ctx.fillRect(p.x+2,p.y+6,5,9);
+ ctx.fillStyle="#fff";ctx.fillRect(p.x-3,p.y-14,2,2);ctx.fillRect(p.x+2,p.y-14,2,2);
+ ctx.save();ctx.translate(p.x,p.y-3);ctx.rotate(Math.atan2(face.y,face.x));
+ ctx.fillStyle=swords[p.weapon].color;ctx.fillRect(5,-2,22,4);
+ ctx.fillStyle="#fff4c9";ctx.fillRect(22,-3,5,6);
+ ctx.fillStyle="#704b3a";ctx.fillRect(1,-3,5,6);ctx.restore();
+
+ if(p.attackCd>.18){
+  ctx.strokeStyle=swords[p.weapon].color;ctx.lineWidth=3;ctx.beginPath();
+  const a=Math.atan2(face.y,face.x);ctx.arc(p.x,p.y,32,a-.85,a+.85);ctx.stroke();
+ }
+ if(p.invincible>0&&Math.floor(performance.now()/70)%2===0){
+  ctx.strokeStyle="#ff7188";ctx.strokeRect(p.x-12,p.y-24,24,43);
+ }
+ for(const q of particles){
+  ctx.globalAlpha=Math.max(0,q.life/.7);ctx.fillStyle=q.color;
+  ctx.fillRect(q.x,q.y,q.size,q.size);ctx.globalAlpha=1;
+ }
+ if(p.dead>0){
+  ctx.fillStyle="#080912aa";ctx.fillRect(0,0,w,h);
+  ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="bold 24px system-ui";
+  ctx.fillText("잠시 후 부활합니다",w/2,h/2);
+ }
+}
+
+function frame(time){
+ const dt=Math.min(.035,(time-last)/1000||0);last=time;
+ const p=player;
+ p.attackCd=Math.max(0,p.attackCd-dt);
+ p.invincible=Math.max(0,p.invincible-dt);
+
+ if(p.dead>0){
+  p.dead-=dt;
+  if(p.dead<=0){p.hp=Math.ceil(p.maxHp*.65);p.x=320;p.y=245;p.invincible=1;updateUI()}
+ }else{
+  let dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0)+touch.x;
+  let dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0)+touch.y;
+  if(dx||dy){
+   const len=Math.hypot(dx,dy);dx/=len;dy/=len;
+   p.x=Math.max(20,Math.min(620,p.x+dx*145*dt));
+   p.y=Math.max(30,Math.min(455,p.y+dy*145*dt));
+   face={x:dx,y:dy};
+  }
+  spawnTimer+=dt;
+  if(spawnTimer>1.7&&mobs.length<9){spawnTimer=0;spawnMonster()}
+  for(const m of mobs){
+   const dx=p.x-m.x,dy=p.y-m.y,d=Math.hypot(dx,dy)||1;
+   m.cd-=dt;m.flash=Math.max(0,m.flash-dt);
+   if(d>m.range*.7){m.x+=dx/d*m.speed*dt;m.y+=dy/d*m.speed*dt}
+   else if(m.cd<=0){m.cd=1.1+Math.random()*.5;m.wind=.28}
+   if(m.wind>0){m.wind-=dt;if(m.wind<=0&&d<m.range+14)takeDamage(m)}
+  }
+ }
+ particles=particles.filter(q=>q.life>0);
+ for(const q of particles){q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=.94;q.vy*=.94}
+ draw();requestAnimationFrame(frame);
+}
+
+updateUI();
+addLog("초보자의 들판에 입장했습니다.");
+spawnMonster();spawnMonster();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
