@@ -146,6 +146,11 @@ textarea{resize:vertical;min-height:110px}
   <button class="active" data-cat="자유">자유</button><button data-cat="공지">공지</button>
   </div></div>
   <div class="section-head"><h1 id="feedTitle">전체 글</h1><select id="sort" style="width:auto;max-width:145px"><option value="new">최신순</option><option value="hot">인기순</option></select></div>
+  <section id="pinnedChatPanel" class="panel" style="margin-bottom:16px;display:none">
+    <div class="section-head" style="margin-bottom:8px"><h2 style="font-size:16px;margin:0">📌 고정 채팅방</h2><button id="changePinnedChatBtn" type="button">변경</button></div>
+    <div id="pinnedChatSummary" class="small">고정된 채팅방이 없습니다.</div>
+    <div class="actions"><button id="openPinnedChatBtn" class="primary" type="button">채팅방 열기</button><button id="unpinChatBtn" type="button">고정 해제</button></div>
+  </section>
   <div id="feed" class="feed"><div class="empty">커뮤니티에 연결하는 중...</div></div>
   <div class="bottom-tools"><div id="pagination" class="pagination"></div><input id="search" class="bottom-search" type="search" name="community-search-query" role="searchbox" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="search" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" readonly placeholder="게시글 검색..." aria-label="게시글 검색"></div>
 </main>
@@ -258,6 +263,7 @@ async function refresh(){
  }
  posts=data||[];
  render();
+ await loadPinnedChat();
 }
 
 function render(){
@@ -406,6 +412,20 @@ async function report(postId){
  const {error}=await db.from("reports").insert({post_id:postId,reporter_id:user.id,reason:reason.trim().slice(0,1000)});
  toast(error?"신고 실패: "+error.message:"신고가 접수됐어요.");
 }
+function requestPasswordForSelfDeduction(){
+ return new Promise(resolve=>{
+  const overlay=document.createElement("div");
+  overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:#000b;display:flex;align-items:center;justify-content:center;padding:18px";
+  overlay.innerHTML=`<form style="width:min(100%,360px);background:var(--panel,#171923);color:var(--text,#fff);padding:20px;border-radius:16px;border:1px solid var(--border,#343746)"><h3 style="margin-top:0">관리자 본인 포인트 차감</h3><p class="small">보안을 위해 현재 계정 비밀번호를 다시 입력하세요.</p><input type="password" autocomplete="current-password" placeholder="현재 비밀번호" required style="width:100%;box-sizing:border-box;margin:8px 0 14px;padding:12px;border-radius:10px"><div class="row" style="justify-content:flex-end"><button type="button" data-cancel>취소</button><button type="submit" class="danger">확인</button></div></form>`;
+  const form=overlay.querySelector("form"),input=overlay.querySelector("input");
+  const finish=value=>{overlay.remove();resolve(value)};
+  overlay.querySelector("[data-cancel]").onclick=()=>finish(null);
+  overlay.onclick=e=>{if(e.target===overlay)finish(null)};
+  form.onsubmit=e=>{e.preventDefault();if(input.value)finish(input.value)};
+  document.body.appendChild(overlay);input.focus();
+ });
+}
+
 async function searchAdminMembers(){
  if(profile?.role!=="admin"){toast("관리자 권한이 필요해요.");return}
  const q=$("adminMemberSearch").value.trim();
@@ -425,8 +445,9 @@ async function searchAdminMembers(){
  }
  el.innerHTML=(data||[]).map(m=>{
   const protectedUser=m.id===user?.id||m.role==="admin";
+  const canAdjustPoints=profile?.role==="admin"&&(m.role!=="admin"||m.id===user?.id);
   const status=m.is_suspended?'<span class="tag" style="color:var(--danger)">정지됨</span>':'<span class="tag">정상</span>';
-  const pointAction=protectedUser?'<span class="small">포인트 변경 보호 계정</span>':`<button data-points-user="${esc(m.id)}" data-points-name="${esc(m.nickname||"회원")}">포인트 지급/차감</button>`;
+  const pointAction=canAdjustPoints?`<button data-points-user="${esc(m.id)}" data-points-name="${esc(m.nickname||"회원")}">포인트 지급/차감</button>`:'<span class="small">포인트 변경 보호 계정</span>';
   const action=protectedUser?'<span class="small">보호된 계정</span>':`<button class="${m.is_suspended?"primary":"danger"}" data-suspend-user="${esc(m.id)}" data-suspend-value="${m.is_suspended?"false":"true"}">${m.is_suspended?"정지 해제":"회원 정지"}</button>`;
   return `<div class="activity-item"><div class="row" style="align-items:center"><div style="min-width:0;overflow-wrap:anywhere"><b>${esc(m.nickname||"이름 없는 회원")}</b> <span class="role-badge ${m.role==="admin"?"admin":""}">${m.role==="admin"?"관리자":"회원"}</span><div class="small">이메일: ${esc(m.email||"이메일 없음")}</div><div class="small">보유 포인트: ${(pointMap[m.id]||0).toLocaleString("ko-KR")} P</div><div class="small">${status}</div><div class="row" style="margin-top:8px">${pointAction}${action}</div></div></div></div>`;
  }).join("")||'<div class="empty">검색된 회원이 없어요.</div>';
@@ -436,6 +457,13 @@ async function searchAdminMembers(){
   if(raw===null)return;
   const delta=Number(raw.trim());
   if(!Number.isSafeInteger(delta)||delta===0){toast("0이 아닌 정수를 입력해 주세요.");return}
+  // 관리자 본인 포인트를 차감할 때만 현재 비밀번호 재확인
+  if(delta<0 && b.dataset.pointsUser===user?.id){
+   const password=await requestPasswordForSelfDeduction();
+   if(password===null)return;
+   const {error:verifyError}=await db.auth.signInWithPassword({email:user.email,password});
+   if(verifyError){toast("비밀번호가 올바르지 않아요. 포인트 차감을 취소했어요.");return}
+  }
   if(!confirm(`${delta>0?delta+"P 지급":Math.abs(delta)+"P 차감"}할까요?`))return;
   b.disabled=true;
   const {error}=await db.rpc("admin_adjust_member_points",{p_user_id:b.dataset.pointsUser,p_delta:delta});
@@ -528,6 +556,55 @@ async function loadFriendLists(){
 
 
 let activeChatRoom=null;
+const PINNED_CHAT_KEY="sibol_pinned_chat_room_v1";
+let pinnedChatRoom=null;
+function getPinnedChatId(){try{return localStorage.getItem(PINNED_CHAT_KEY)||""}catch(_){return ""}}
+function setPinnedChatId(id){try{if(id)localStorage.setItem(PINNED_CHAT_KEY,id);else localStorage.removeItem(PINNED_CHAT_KEY)}catch(_){toast("이 브라우저에서는 고정 설정을 저장할 수 없어요.")}}
+function renderPinnedChat(room){
+ pinnedChatRoom=room||null;
+ const panel=$("pinnedChatPanel");
+ if(!panel)return;
+ panel.style.display=room?"block":"none";
+ if(room){$("pinnedChatSummary").textContent=room.name+" · 메인 화면에 고정됨";$("openPinnedChatBtn").disabled=false;}
+}
+async function loadPinnedChat(){
+ const id=getPinnedChatId();
+ if(!id){renderPinnedChat(null);return}
+ if(!user){renderPinnedChat({id,name:"로그인 후 고정 채팅방을 확인할 수 있어요."});$("openPinnedChatBtn").disabled=true;return}
+ const {data:member}=await db.from("chat_room_members").select("room_id").eq("room_id",id).eq("user_id",user.id).maybeSingle();
+ if(!member){setPinnedChatId("");renderPinnedChat(null);return}
+ const {data:room,error}=await db.from("chat_rooms").select("id,name").eq("id",id).eq("is_archived",false).maybeSingle();
+ if(error||!room){renderPinnedChat(null);return}
+ renderPinnedChat(room);
+}
+async function choosePinnedChat(){
+ if(!requireUser())return;
+ const {data:members,error}=await db.from("chat_room_members").select("room_id").eq("user_id",user.id);
+ if(error){toast("채팅방 목록을 불러오지 못했어요: "+error.message);return}
+ const ids=[...new Set((members||[]).map(x=>x.room_id))];
+ if(!ids.length){toast("고정할 수 있는 채팅방이 없어요.");return}
+ const {data:rooms,error:roomError}=await db.from("chat_rooms").select("id,name").in("id",ids).eq("is_archived",false).order("created_at",{ascending:false});
+ if(roomError||!rooms?.length){toast("채팅방 목록을 불러오지 못했어요.");return}
+ const menu=rooms.map((r,i)=>`${i+1}. ${r.name}`).join("\n");
+ const raw=prompt("메인 화면에 고정할 채팅방 번호를 입력하세요.\n\n"+menu+"\n\n0을 입력하면 고정 해제합니다.",String(Math.max(1,rooms.findIndex(r=>r.id===getPinnedChatId())+1)));
+ if(raw===null)return;
+ const n=Number(raw.trim());
+ if(n===0){setPinnedChatId("");renderPinnedChat(null);toast("메인 화면 고정을 해제했어요.");return}
+ if(!Number.isInteger(n)||n<1||n>rooms.length){toast("목록에 있는 번호를 입력해 주세요.");return}
+ const room=rooms[n-1];setPinnedChatId(room.id);renderPinnedChat(room);toast("메인 화면에 채팅방을 고정했어요.");
+}
+async function openPinnedChat(){
+ if(!requireUser())return;
+ const id=getPinnedChatId();
+ if(!id){toast("먼저 고정할 채팅방을 선택해 주세요.");await choosePinnedChat();return}
+ show("groupChatModal");
+ $("createRoomArea").classList.toggle("hidden",!(profile?.role==="admin"));
+ $("activeChatArea").classList.add("hidden");
+ $("chatInviteScreen").classList.add("hidden");
+ $("chatConversationView").classList.remove("hidden");
+ await loadChatRooms();
+ await enterChatRoom(id);
+}
 async function openGroupChat(){
  if(!requireUser())return;
  show("groupChatModal");
@@ -546,8 +623,9 @@ async function loadChatRooms(){
  if(!ids.length){el.innerHTML='<p class="small">초대받은 채팅방이 없어요.</p>';return}
  const {data,error:roomError}=await db.from("chat_rooms").select("id,name,created_at").eq("is_archived",false).in("id",ids).order("created_at",{ascending:false});
  if(roomError){el.textContent="채팅방을 불러오지 못했어요: "+roomError.message;return}
- el.innerHTML=data?.length?data.map(r=>`<div class="activity-item"><div class="row" style="align-items:center"><b>${esc(r.name)}</b><button data-enter-room="${r.id}">입장</button></div></div>`).join(""):'<p class="small">초대받은 채팅방이 없어요.</p>';
+ el.innerHTML=data?.length?data.map(r=>`<div class="activity-item"><div class="row" style="align-items:center"><b>${esc(r.name)}${getPinnedChatId()===r.id?' <span class="tag">📌 메인 고정</span>':''}</b><button data-pin-room="${r.id}" data-pin-name="${esc(r.name)}">${getPinnedChatId()===r.id?'고정됨':'메인에 고정'}</button><button data-enter-room="${r.id}">입장</button></div></div>`).join(""):'<p class="small">초대받은 채팅방이 없어요.</p>';
  el.querySelectorAll("[data-enter-room]").forEach(b=>b.onclick=()=>enterChatRoom(b.dataset.enterRoom));
+ el.querySelectorAll("[data-pin-room]").forEach(b=>b.onclick=()=>{setPinnedChatId(b.dataset.pinRoom);renderPinnedChat({id:b.dataset.pinRoom,name:b.dataset.pinName});toast("메인 화면에 채팅방을 고정했어요.");loadChatRooms()});
 }
 async function enterChatRoom(id){
  const {data:member,error:memberError}=await db.from("chat_room_members").select("room_id").eq("room_id",id).eq("user_id",user.id).maybeSingle();
@@ -617,6 +695,9 @@ $("authBtn").onclick=()=>user?openProfile():show("authModal");
 $("menuBoards").onclick=()=>{document.querySelector("main").scrollIntoView({behavior:"smooth"});};
 $("menuProfile").onclick=openProfile;
 $("menuChats").onclick=openGroupChat;
+$("changePinnedChatBtn").onclick=choosePinnedChat;
+$("openPinnedChatBtn").onclick=openPinnedChat;
+$("unpinChatBtn").onclick=()=>{setPinnedChatId("");renderPinnedChat(null);toast("메인 화면 고정을 해제했어요.")};
 $("menuFriends").onclick=()=>user?openFriends():show("authModal");
 $("joinBtn").onclick=()=>user?openProfile():show("authModal");
 $("inviteRoomBtn").onclick=inviteToRoom;
