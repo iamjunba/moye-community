@@ -801,7 +801,7 @@ if(db){
 #sibolGamePanel .sg-head{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-14px;background:#101522;padding:4px 0 10px;z-index:2}
 #sibolGamePanel h2{font-size:20px;margin:0}
 #sibolGamePanel .sg-note{font-size:12px;color:var(--muted,#929bb0);margin:8px 0}
-#sibolGameCanvas{display:block;width:100%;max-height:48dvh;aspect-ratio:4/3;background:#101522;border:1px solid #34304f;border-radius:12px;touch-action:none}
+#sibolGameCanvas{display:block;width:min(100%,1000px);height:auto;aspect-ratio:4/3;background:#101522;border:1px solid #34304f;border-radius:12px;touch-action:none;object-fit:contain;margin-inline:auto}
 #sibolGamePanel .sg-hud{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 #sibolGamePanel .sg-stat{background:#191f2d;border:1px solid #34304f;border-radius:9px;padding:5px 8px;font-size:12px}
 #sibolGamePanel .sg-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
@@ -819,7 +819,8 @@ if(db){
 #sibolGamePanel #sgToast{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:#25213d;border:1px solid #9a8cff;border-radius:10px;padding:8px 14px;display:none;z-index:4;max-width:90%;text-align:center;pointer-events:none}
 #sibolGamePanel #sgToast.show{display:block}
 #menuGames{border-color:#514879}
-@media(max-width:650px){#sibolGameOverlay{padding:0}#sibolGamePanel{height:100dvh;width:100%;border-radius:0;padding:10px}#sibolGamePanel .sg-head{top:-10px}#sibolGameCanvas{max-height:38dvh}}
+@media(min-width:900px){#sibolGamePanel{width:min(1100px,96vw);height:min(94dvh,1000px);padding:20px}#sibolGameCanvas{width:min(100%,800px);max-height:unset}}
+@media(max-width:650px){#sibolGameOverlay{padding:0}#sibolGamePanel{height:100dvh;width:100%;border-radius:0;padding:10px}#sibolGamePanel .sg-head{top:-10px}#sibolGameCanvas{width:100%;max-height:none}}
 </style>
 <div id="sibolGameOverlay" aria-hidden="true">
 <section id="sibolGamePanel" role="dialog" aria-modal="true" aria-label="시볼의 검 게임">
@@ -833,9 +834,9 @@ if(db){
   <canvas id="sibolGameCanvas" width="800" height="600" aria-label="게임 화면"></canvas>
   <div class="sg-controls" style="margin-top:8px">
     <div class="sg-pad" aria-label="이동 조작"><button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="sgAttack" class="primary">⚔️ 공격</button><button id="sgPotion">🧪 물약 (30G)</button><button id="sgRestart">다시 부활</button></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="sgAttack" class="primary">⚔️ 공격</button><button id="sgPotion">🧪 물약 (30G)</button></div>
   </div>
-  <div class="sg-tabs"><button data-sgtab="inventory" class="active">검 보관함</button><button data-sgtab="shop">상점</button><button data-sgtab="lost">유실물</button><button data-sgtab="craft">검 조합</button><button data-sgtab="gacha">랜덤 뽑기</button></div>
+  <div class="sg-tabs"><button data-sgtab="inventory" class="active">검 보관함</button><button data-sgtab="shop">상점</button><button data-sgtab="lost">유실물</button><button data-sgtab="craft">검 조합</button><button data-sgtab="enhance">검 강화</button><button data-sgtab="gacha">랜덤 뽑기</button></div>
   <div id="sgView" class="sg-view"></div>
   <p class="sg-note">자동 조준만 지원하며 공격은 직접 눌러야 합니다. 게임 창을 닫으면 즉시 퇴장하여 몬스터와 플레이어 모두 전투·이동이 중단됩니다. 레벨, 골드, 검, 재료는 이 기기에 저장됩니다.</p>
 </section></div>
@@ -845,8 +846,8 @@ if(db){
 const $=id=>document.getElementById(id), overlay=$("sibolGameOverlay"), canvas=$("sibolGameCanvas"),ctx=canvas.getContext("2d");
 const SAVE="sibol_sword_v3_save";
 const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:29,rarity:"희귀"},moon:{name:"월광 검",atk:43,rarity:"영웅"},void:{name:"공허 검",atk:65,rarity:"전설"}};
-const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],mats:{iron:0,core:0,flame:0,moon:0},tickets:0,pity:0,kills:0});
-let data;try{data={...defaults(),...JSON.parse(localStorage.getItem(SAVE)||"{}")};data.mats={...defaults().mats,...data.mats}}catch{data=defaults()}
+const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0},tickets:0,kills:0,lootLog:[]});
+let data;try{data={...defaults(),...JSON.parse(localStorage.getItem(SAVE)||"{}")};data.mats={...defaults().mats,...data.mats};data.duplicates={...defaults().duplicates,...data.duplicates};data.enhance={...defaults().enhance,...data.enhance};data.lootLog=Array.isArray(data.lootLog)?data.lootLog:[];delete data.pity}catch{data=defaults()}
 let active=false,raf=0,last=0,toastTimer=0,attackReady=0,swingUntil=0,swingTarget=null,tab="inventory",gameOver=false;
 const W=800,H=600,player={x:400,y:300,r:13,invuln:0,face:1},keys={},monsters=[];
 const homes=[[160,150],[630,150],[160,440],[630,440],[400,110],[400,490],[100,300],[700,300]];
@@ -858,31 +859,33 @@ function spawn(){monsters.length=0;homes.forEach((p,i)=>monsters.push({x:p[0],y:
 function enter(){if(active)return;active=true;overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");gameOver=data.hp<=0;last=performance.now();attackReady=0;Object.keys(keys).forEach(k=>keys[k]=false);hud();raf=requestAnimationFrame(loop)}
 function exit(){active=false;overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");cancelAnimationFrame(raf);Object.keys(keys).forEach(k=>keys[k]=false);swingUntil=0;swingTarget=null;save()}
 function nearest(max=180){let best=null,dist=max;for(const m of monsters){if(!m.alive)continue;const d=Math.hypot(m.x-player.x,m.y-player.y);if(d<dist){dist=d;best=m}}return best}
-function attack(){if(!active||gameOver)return;const now=performance.now();if(now<attackReady)return;attackReady=now+360;const m=nearest(150);if(!m){toast("사거리 안에 몬스터가 없어요.");return}swingTarget=m;swingUntil=now+180;m.hp-=weapons[data.weapon].atk;if(m.hp<=0){m.alive=false;m.respawn=performance.now()+6500;data.kills++;data.gold+=m.boss?35:8;data.xp+=m.boss?25:10;data.mats.iron+=1;if(Math.random()<.35)data.mats.core++;if(Math.random()<.18)data.mats.flame++;if(Math.random()<.1)data.mats.moon++;while(data.xp>=xpNeed()){data.xp-=xpNeed();data.level++;data.hp=100;toast("✨ 레벨 업! Lv."+data.level)}hud()}else toast("명중!")}
+function attack(){if(!active||gameOver)return;const now=performance.now();if(now<attackReady)return;attackReady=now+360;const m=nearest(50);if(!m)return; swingTarget=m;swingUntil=now+180;m.hp-=weapons[data.weapon].atk+((data.enhance[data.weapon]||0)*5);if(m.hp<=0){m.alive=false;m.respawn=performance.now()+10000;data.kills++;data.gold+=m.boss?35:8;data.xp+=m.boss?25:10;const drops=[];if(Math.random()<.20){data.mats.iron++;drops.push(["철 광석",1])}if(Math.random()<.08){data.mats.core++;drops.push(["몬스터 핵",1])}if(Math.random()<.04){data.mats.flame++;drops.push(["화염 조각",1])}if(Math.random()<.01){data.mats.moon++;drops.push(["달빛 가루",1])}if(!drops.length)drops.push(["획득 아이템 없음",0])data.lootLog.unshift({time:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),monster:m.boss?"보스":"몬스터",drops:drops.map(x=>x[0]+" ×"+x[1]).join(", ")});data.lootLog=data.lootLog.slice(0,30);while(data.xp>=xpNeed()){data.xp-=xpNeed();data.level++;data.hp=100;}hud()}else { /* 명중 알림 제거 */ }}
 function potion(){if(!active||gameOver)return;if(data.gold<30){toast("골드가 부족해요.");return}if(data.hp>=100){toast("HP가 이미 가득해요.");return}data.gold-=30;data.hp=Math.min(100,data.hp+45);hud()}
 function renderTab(){const el=$("sgView");if(!el)return;const row=(name,desc,button,disabled=false)=>`<div class="sg-row"><div><b>${name}</b><div class="sg-note">${desc}</div></div>${button?`<button ${disabled?"disabled":""} data-action="${button.action}">${button.label}</button>`:""}</div>`;
 if(tab==="inventory"){el.innerHTML=Object.keys(weapons).filter(k=>data.owned.includes(k)).map(k=>row(weapons[k].name,`공격력 ${weapons[k].atk} · ${weapons[k].rarity}`,{action:"equip:"+k,label:data.weapon===k?"장착 중":"장착"},data.weapon===k)).join("")}
 if(tab==="shop"){el.innerHTML=row("철 검","120G · 공격력 16",{action:"buy:iron",label:"구매"},data.owned.includes("iron")||data.gold<120)+row("회복 물약","30G · HP 45 회복",{action:"potion",label:"사용"},data.gold<30||data.hp>=100)+row("랜덤 뽑기권","100G · 검 획득 기회",{action:"ticket",label:"구매"},data.gold<100)+`<p class="sg-note">보유 뽑기권: ${data.tickets||0}장</p>`}
-if(tab==="lost"){el.innerHTML=row("철 광석",`보유 ${data.mats.iron}개`)+row("몬스터 핵",`보유 ${data.mats.core}개`)+row("화염 조각",`보유 ${data.mats.flame}개`)+row("달빛 가루",`보유 ${data.mats.moon}개`)+`<p class="sg-note">몬스터를 처치하면 재료가 확률적으로 떨어집니다.</p>`}
-if(tab==="craft"){el.innerHTML=row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G",{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50||data.owned.includes("iron"))+row("화염 검","철 검 보유 + 화염 조각 5개 + 핵 3개 + 100G",{action:"craft:flame",label:"조합"},!data.owned.includes("iron")||data.mats.flame<5||data.mats.core<3||data.gold<100||data.owned.includes("flame"))+row("월광 검","화염 검 보유 + 달빛 가루 5개 + 핵 5개 + 200G",{action:"craft:moon",label:"조합"},!data.owned.includes("flame")||data.mats.moon<5||data.mats.core<5||data.gold<200||data.owned.includes("moon"))}
-if(tab==="gacha"){el.innerHTML=`<p>뽑기권 ${data.tickets||0}장 · 천장 ${data.pity||0}/30</p>`+row("검 랜덤 뽑기","일반 72% · 희귀 20% · 영웅 7% · 전설 1% (30회 내 전설 보장)",{action:"gacha",label:"뽑기"},(data.tickets||0)<1)}
+if(tab==="lost"){el.innerHTML=row("철 광석",`보유 ${data.mats.iron}개`)+row("몬스터 핵",`보유 ${data.mats.core}개`)+row("화염 조각",`보유 ${data.mats.flame}개`)+row("달빛 가루",`보유 ${data.mats.moon}개`)+`<h3 style="margin:12px 0 6px">최근 유실물 획득 내역</h3>`+(data.lootLog.length?data.lootLog.map(x=>`<div class="sg-row"><div><b>${x.drops}</b><div class="sg-note">${x.time} · ${x.monster} 처치</div></div></div>`).join(""):`<p class="sg-note">아직 획득 내역이 없습니다. 몬스터를 처치해 보세요.</p>`)+`<p class="sg-note">몬스터 인식 범위는 그대로이며, 실제 공격 범위만 기존의 1/3로 줄었습니다.</p>`}
+if(tab==="craft"){el.innerHTML=row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G",{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50||data.owned.includes("iron"))+row("화염 검","철 검 보유 + 화염 조각 5개 + 핵 3개 + 100G",{action:"craft:flame",label:"조합"},!data.owned.includes("iron")||data.mats.flame<5||data.mats.core<3||data.gold<100||data.owned.includes("flame"))}
+if(tab==="enhance"){el.innerHTML=Object.keys(weapons).filter(k=>data.owned.includes(k)).map(k=>row(weapons[k].name+" +"+(data.enhance[k]||0),`공격력 ${weapons[k].atk+((data.enhance[k]||0)*5)} · 중복 필요 ${((data.enhance[k]||0)+1)}개 · 보유 ${data.duplicates[k]||0}개`,{action:"enhance:"+k,label:"강화"},(data.duplicates[k]||0)<((data.enhance[k]||0)+1))).join("")}
+if(tab==="gacha"){el.innerHTML=`<p>뽑기권 ${data.tickets||0}장</p>`+row("검 랜덤 뽑기","나무 75% · 철 20% · 화염 4% · 월광 0.75% · 공허 0.25% · 천장 없음",{action:"gacha",label:"뽑기"},(data.tickets||0)<1)}
 }
 function action(a){if(!active)return;const [type,k]=a.split(":");
 if(type==="equip"){if(data.owned.includes(k)){data.weapon=k;toast(weapons[k].name+" 장착");}}
+if(type==="enhance"){const need=(data.enhance[k]||0)+1;if(data.owned.includes(k)&&(data.duplicates[k]||0)>=need){data.duplicates[k]-=need;data.enhance[k]=(data.enhance[k]||0)+1;toast(weapons[k].name+" 강화 +"+data.enhance[k]);}}
 if(type==="buy"&&k==="iron"){if(data.gold>=120&&!data.owned.includes("iron")){data.gold-=120;data.owned.push("iron");toast("철 검을 구매했어요.")}}
 if(type==="ticket"){if(data.gold>=100){data.gold-=100;data.tickets=(data.tickets||0)+1;toast("뽑기권을 구매했어요.")}else toast("골드가 부족해요.")}
 if(type==="potion"){potion()}
 if(type==="craft"){if(k==="iron"&&data.mats.iron>=5&&data.mats.core>=2&&data.gold>=50&&!data.owned.includes(k)){data.mats.iron-=5;data.mats.core-=2;data.gold-=50;data.owned.push(k);toast("철 검 조합 성공!")}
 else if(k==="flame"&&data.owned.includes("iron")&&data.mats.flame>=5&&data.mats.core>=3&&data.gold>=100&&!data.owned.includes(k)){data.mats.flame-=5;data.mats.core-=3;data.gold-=100;data.owned.push(k);toast("🔥 화염 검 조합 성공!")}
 else if(k==="moon"&&data.owned.includes("flame")&&data.mats.moon>=5&&data.mats.core>=5&&data.gold>=200&&!data.owned.includes(k)){data.mats.moon-=5;data.mats.core-=5;data.gold-=200;data.owned.push(k);toast("🌙 월광 검 조합 성공!")}else toast("재료나 골드가 부족해요.")}
-if(type==="gacha"){if(data.tickets<1)return;data.tickets--;let r=Math.random(),got=r<.01?"void":r<.08?"moon":r<.28?"flame":r<.55?"iron":"wood";data.pity++;if(data.pity>=30&&got!=="void")got="void";if(got==="void")data.pity=0;if(!data.owned.includes(got)){data.owned.push(got);toast("🎉 "+weapons[got].name+" 획득!")}else{data.gold+=got==="void"?250:got==="moon"?100:got==="flame"?60:25;toast("중복 검! 골드로 교환했어요.")}}
+if(type==="gacha"){if(data.tickets<1)return;data.tickets--;const r=Math.random();const got=r<.0025?"void":r<.01?"moon":r<.05?"flame":r<.25?"iron":"wood";if(data.owned.includes(got)){data.duplicates[got]=(data.duplicates[got]||0)+1;toast(weapons[got].name+" 중복 획득 · 강화 재료 +1")}else{data.owned.push(got);toast(weapons[got].name+" 획득!")}}
 hud()}
 function update(dt,now){if(!active)return;if(gameOver)return;
 let dx=0,dy=0;if(keys.ArrowLeft||keys.a)dx--;if(keys.ArrowRight||keys.d)dx++;if(keys.ArrowUp||keys.w)dy--;if(keys.ArrowDown||keys.s)dy++;
 if(dx||dy){const l=Math.hypot(dx,dy)||1;player.x=Math.max(25,Math.min(W-25,player.x+dx/l*190*dt));player.y=Math.max(25,Math.min(H-25,player.y+dy/l*190*dt));if(dx)player.face=Math.sign(dx)}
 player.invuln=Math.max(0,player.invuln-dt);
 for(const m of monsters){if(!m.alive){if(now>=m.respawn){m.alive=true;m.hp=m.max;m.x=m.homeX;m.y=m.homeY}continue}
-const d=Math.hypot(player.x-m.x,player.y-m.y);if(d<125){const l=d||1;m.x+=(player.x-m.x)/l*55*dt;m.y+=(player.y-m.y)/l*55*dt;if(d<player.r+m.r+5&&player.invuln<=0){data.hp-=m.boss?12:5;player.invuln=.7;if(data.hp<=0){data.hp=0;gameOver=true;toast("쓰러졌어요. 다시 부활을 눌러 주세요.")}}else if(d>160){m.x+=(m.homeX-m.x)*.5*dt;m.y+=(m.homeY-m.y)*.5*dt}}
+const d=Math.hypot(player.x-m.x,player.y-m.y);if(d<125){const l=d||1;m.x+=(player.x-m.x)/l*55*dt;m.y+=(player.y-m.y)/l*55*dt;if(d<player.r+m.r+5&&player.invuln<=0){data.hp-=m.boss?12:5;player.invuln=.7;if(data.hp<=0){data.hp=0;gameOver=true}}else if(d>160){m.x+=(m.homeX-m.x)*.5*dt;m.y+=(m.homeY-m.y)*.5*dt}}
 if(data.hp<=0)gameOver=true}
 }
 function draw(now){ctx.clearRect(0,0,W,H);ctx.fillStyle="#101522";ctx.fillRect(0,0,W,H);ctx.strokeStyle="#242c40";ctx.lineWidth=1;for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
@@ -891,12 +894,12 @@ for(const m of monsters){if(!m.alive)continue;ctx.fillStyle=m.boss?"#d17cff":"#f
 const target=nearest(180);if(target){ctx.strokeStyle="#a99cff88";ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(player.x,player.y);ctx.lineTo(target.x,target.y);ctx.stroke();ctx.setLineDash([])}
 ctx.fillStyle=player.invuln>0?"#fff":"#9a8cff";ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();ctx.fillStyle="#27203f";ctx.beginPath();ctx.arc(player.x+player.face*4,player.y-4,3,0,Math.PI*2);ctx.fill();
 if(now<swingUntil&&swingTarget){const a=Math.atan2(swingTarget.y-player.y,swingTarget.x-player.x);ctx.strokeStyle="#eee7ff";ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,28,a-.8,a+.8);ctx.stroke()}
-if(gameOver){ctx.fillStyle="#000a";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="bold 28px system-ui";ctx.fillText("GAME OVER",W/2,H/2);ctx.font="15px system-ui";ctx.fillText("다시 부활을 눌러 주세요",W/2,H/2+30)}ctx.textAlign="left";
+if(gameOver){ctx.fillStyle="#000a";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="bold 28px system-ui";ctx.fillText("GAME OVER",W/2,H/2)}ctx.textAlign="left";
 }
 function loop(now){if(!active)return;const dt=Math.min(.035,(now-last)/1000);last=now;update(dt,now);draw(now);if(Math.floor(now/400)!==Math.floor((now-dt*1000)/400))hud();raf=requestAnimationFrame(loop)}
-function respawn(){if(!active)return;data.hp=100;gameOver=false;player.x=400;player.y=300;player.invuln=1;hud();toast("다시 사냥을 시작해요.")}
+
 $("menuGames")?.addEventListener("click",enter);if(!$("menuGames")){const b=document.createElement("button");b.id="menuGames";b.type="button";b.textContent="🎮 게임";$("mainMenu")?.appendChild(b);b.addEventListener("click",enter)}
-$("sgExit").onclick=exit;$("sgAttack").onclick=attack;$("sgPotion").onclick=potion;$("sgRestart").onclick=respawn;
+$("sgExit").onclick=exit;$("sgAttack").onclick=attack;$("sgPotion").onclick=potion;
 $("sibolGameOverlay").addEventListener("click",e=>{if(e.target===overlay)exit()});
 document.querySelectorAll("#sibolGamePanel [data-sgtab]").forEach(b=>b.addEventListener("click",()=>{tab=b.dataset.sgtab;document.querySelectorAll("#sibolGamePanel [data-sgtab]").forEach(x=>x.classList.toggle("active",x===b));renderTab()}));
 $("sgView").addEventListener("click",e=>{const b=e.target.closest("[data-action]");if(b&&!b.disabled)action(b.dataset.action)});
