@@ -777,7 +777,7 @@ async function loadAdminTable(){
  renderAdminTable();
 }
 /* 게임 저장 전용 편집기 (장비/재료/상태) */
-const GAME_WEAPONS={wood:"나무 검",iron:"철 검",flame:"화염 검",moon:"월광 검",void:"공허 검",judge:"심판의 검(관리자)"};
+const GAME_WEAPONS={wood:"나무 검",iron:"철 검",flame:"화염 검",long:"장검",enchant:"인챈트 소드",moon:"월광 검",void:"공허 검",judge:"심판의 검(관리자)"};
 const GAME_MATS={iron:"철 광석",core:"몬스터 핵",flame:"화염 조각",moon:"달빛 가루"};
 const GAME_NUMS=[["level","레벨"],["xp","XP"],["gold","골드"],["hp","HP"],["stage","현재 스테이지"],["maxStage","최대 해금 스테이지"],["tickets","뽑기권"],["potions","물약"],["kills","처치 수"],["bossKills","보스 처치"]];
 function normGame(d){
@@ -1156,6 +1156,7 @@ if(db){
 #sibolGamePanel.sg-full .sg-hud{position:absolute;top:calc(6px + env(safe-area-inset-top));left:calc(6px + env(safe-area-inset-left));max-width:62%;margin:0;z-index:20;pointer-events:none}
 #sibolGamePanel.sg-full .sg-stat{background:rgba(25,31,45,.72);font-size:11px;padding:3px 6px}
 #sibolGamePanel.sg-full .sg-note{display:none}
+#sibolGamePanel.sg-full .sg-menupanel .sg-note{display:block}
 #sibolGamePanel .sg-menuhead,#sibolGamePanel #sgMenuBtn{display:none}
 #sibolGamePanel.sg-full #sgMenuBtn{display:inline-block}
 #sibolGamePanel.sg-full .sg-menupanel{display:none}
@@ -1244,8 +1245,9 @@ function setWorld(plaza){
  W=plaza?VW:VW*MAPSCALE;H=plaza?VH:VH*MAPSCALE;
  SAFE.x=W/2;SAFE.y=H/2;
 }
-const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:36,enh:0.2,rarity:"희귀"},moon:{name:"월광 검",atk:58,enh:0.25,rarity:"영웅"},void:{name:"공허 검",atk:90,enh:0.3,rarity:"전설"},judge:{name:"심판의 검",atk:999,rarity:"관리자",adminOnly:true}};
+const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:36,enh:0.2,rarity:"희귀"},long:{name:"장검",atk:46,enh:0.22,rarity:"희귀"},enchant:{name:"인챈트 소드",atk:40,enh:0.2,rarity:"희귀"},moon:{name:"월광 검",atk:58,enh:0.25,rarity:"영웅"},void:{name:"공허 검",atk:90,enh:0.3,rarity:"전설"},judge:{name:"심판의 검",atk:999,rarity:"관리자",adminOnly:true}};
 const STAGES=[{name:"초원"},{name:"사막"},{name:"얼음 동굴"},{name:"화산"},{name:"늪지"},{name:"공허의 균열"}];
+const ESSENCES={fire:{name:"화염 에센스",icon:"🔥",color:"#ff7849",desc:"공격 적중 시 화상 피해"},ice:{name:"빙결 에센스",icon:"❄️",color:"#8bdcff",desc:"일반 몬스터 둔화"},lightning:{name:"번개 에센스",icon:"⚡",color:"#ffe66d",desc:"주변 적에게 연쇄 피해"},nature:{name:"자연 에센스",icon:"🌿",color:"#75e6a0",desc:"처치 시 HP 회복"},holy:{name:"신성 에센스",icon:"✨",color:"#fff0a6",desc:"보스에게 추가 피해"},void:{name:"공허 에센스",icon:"🌌",color:"#c59aff",desc:"치명타 확률 증가"}};
 const TYPES={
  normal:{r:13,speed:55,dmg:5,hp:30,detect:125},
  fast:{r:10,speed:110,dmg:4,hp:18,detect:160},
@@ -1285,11 +1287,11 @@ const ACHIEVEMENTS=[
 ];
 
 /* ── 저장 데이터 ── */
-const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0},tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{wood:true},maxStage:1,loc:"plaza"});
+const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,long:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,long:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0},essences:{fire:0,ice:0,lightning:0,nature:0,holy:0,void:0},essence:"none",tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{wood:true},maxStage:1,loc:"plaza"});
 let data;
 try{
  const saved=JSON.parse(localStorage.getItem(SAVE)||"{}");const d=defaults();
- data={...d,...saved,mats:{...d.mats,...saved.mats},duplicates:{...d.duplicates,...saved.duplicates},enhance:{...d.enhance,...saved.enhance},lootLog:Array.isArray(saved.lootLog)?saved.lootLog:[],achClaimed:saved.achClaimed||{}};
+ data={...d,...saved,mats:{...d.mats,...saved.mats},essences:{...d.essences,...saved.essences},duplicates:{...d.duplicates,...saved.duplicates},enhance:{...d.enhance,...saved.enhance},lootLog:Array.isArray(saved.lootLog)?saved.lootLog:[],achClaimed:saved.achClaimed||{}};
 }catch{data=defaults()}
 data.maxStage=Math.max(1,Math.floor(Number(data.maxStage)||1),Math.floor(Number(data.stage)||1));
 if(data.loc!=="field"&&data.loc!=="plaza")data.loc="plaza";
@@ -1415,8 +1417,8 @@ function syncCodex(){
  return added;
 }
 const RARITY_COLOR={"기본":"#929bb0","일반":"#6ee7b7","희귀":"#6aa8ff","영웅":"#b07cff","전설":"#ffd166","관리자":"#ff657a"};
-const OBTAIN={wood:"기본 지급",iron:"상점 120G · 조합(철 광석 5 + 몬스터 핵 2 + 50G) · 뽑기 20%",flame:"조합(철 검 + 화염 조각 5 + 몬스터 핵 3 + 100G) · 뽑기 4%",moon:"조합(화염 검 +5 1자루 + 달빛 가루 50개) · 뽑기 0.75%",void:"뽑기 0.25%",judge:"관리자 전용 · 관리자가 기간 한정으로 하사"};
-const LORE={wood:"초원의 수련생이 처음 쥐는 평범한 나무 검.",iron:"대장간에서 두드려 만든 믿음직한 철 검.",flame:"칼날에 꺼지지 않는 불씨가 깃든 검.",moon:"달빛을 머금은 칼날이 어둠 속에서 은은히 빛난다.",void:"공허에서 건져 올렸다는 전설의 검. 휘두르면 소리가 사라진다.",judge:"시볼의 질서를 지키는 자만이 쥘 수 있는 검. 베이는 것은 몬스터뿐이다."};
+const OBTAIN={wood:"기본 지급",iron:"상점 120G · 조합(철 광석 5 + 몬스터 핵 2 + 50G) · 뽑기 20%",flame:"조합(철 검 + 화염 조각 5 + 몬스터 핵 3 + 100G) · 뽑기 4%",long:"조합(철 검 + 철 광석 15 + 몬스터 핵 6 + 200G)",moon:"조합(화염 검 +5 1자루 + 달빛 가루 50개) · 뽑기 0.75%",void:"뽑기 0.25%",judge:"관리자 전용 · 관리자가 기간 한정으로 하사"};
+const LORE={wood:"초원의 수련생이 처음 쥐는 평범한 나무 검.",iron:"대장간에서 두드려 만든 믿음직한 철 검.",flame:"칼날에 꺼지지 않는 불씨가 깃든 검.",long:"긴 칼날로 멀리서 적을 베어 넘기는 검. 사거리가 길다.",moon:"달빛을 머금은 칼날이 어둠 속에서 은은히 빛난다.",void:"공허에서 건져 올렸다는 전설의 검. 휘두르면 소리가 사라진다.",judge:"시볼의 질서를 지키는 자만이 쥘 수 있는 검. 베이는 것은 몬스터뿐이다."};
 function codexHtml(){
  const base=Object.keys(weapons).filter(k=>!weapons[k].adminOnly);
  const found=codexCount();
@@ -1426,7 +1428,7 @@ function codexHtml(){
   if(w.adminOnly&&!disc){h+=`<div class="sg-row" style="border-left:4px solid #3a4257;padding-left:10px;opacity:.6"><div><b>??? <span class="role-badge">비밀</span></b><div class="sg-note">관리자만 아는 검이라고 전해집니다.</div></div></div>`;continue}
   if(!disc){h+=`<div class="sg-row" style="border-left:4px solid #3a4257;padding-left:10px;opacity:.7"><div><b>??? <span class="role-badge">미발견</span></b><div class="sg-note">획득 힌트: ${esc(OBTAIN[k]||"")}</div></div></div>`;continue}
   const col=RARITY_COLOR[w.rarity]||"#929bb0",owned=data.owned.includes(k),eq=data.weapon===k,enh=data.enhance[k]||0,dup=data.duplicates[k]||0;
-  h+=`<div class="sg-row" style="border-left:4px solid ${col};padding-left:10px"><div><b>${esc(w.name)}</b> <span class="role-badge" style="color:${col}">${esc(w.rarity)}</span> <span class="role-badge">${eq?"장착 중":owned?"보유":"미보유"}</span><div class="sg-note">${k==="judge"?"공격력 몬스터 HP의 1000%":"공격력 "+w.atk}${enh?` (+${Math.min(enh,ENH_MAX)} 강화 → ${atkOf(k)})`:""} · 중복 ${dup}개</div><div class="sg-note">획득: ${esc(OBTAIN[k]||"")}</div><div class="sg-note" style="font-style:italic">${esc(LORE[k]||"")}</div></div></div>`;
+  h+=`<div class="sg-row" style="border-left:4px solid ${col};padding-left:10px"><div><b>${esc(w.name)}</b> <span class="role-badge" style="color:${col}">${esc(w.rarity)}</span> <span class="role-badge">${eq?"장착 중":owned?"보유":"미보유"}</span><div class="sg-note">${k==="judge"?"공격력 몬스터 HP의 1000%":"공격력 "+atkAt(k,0)}${enh?` (+${Math.min(enh,ENH_MAX)} 강화 → ${atkOf(k)})`:""} · 중복 ${dup}개</div><div class="sg-note">획득: ${esc(OBTAIN[k]||"")}</div><div class="sg-note" style="font-style:italic">${esc(LORE[k]||"")}</div></div></div>`;
  }
  return h;
 }
@@ -1523,7 +1525,7 @@ function updChainSeq(dt){
 }
 function castChain(){
  const c=S.chain;S.chain=null;if(!c)return;
- const r=chainRadius(c.t);S.cd2=2;sfx("skill");
+ const r=chainRadius(c.t);S.cd2=1;sfx("skill");
  const list=allTargets().filter(m=>m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<=r)
   .sort((a,b)=>Math.hypot(b.x-S.px,b.y-S.py)-Math.hypot(a.x-S.px,a.y-S.py));
  if(!list.length){S.cd2=0.3;toast("범위 안에 적이 없어요 · 0.3초 후 재장전");return}
@@ -1755,8 +1757,8 @@ function useSkill3(){
  if(!judgeOn()){toast("스킬 3은 심판의 검 전용이에요.");return}
  if(S.cd3>0||stunned())return;
  const list=allTargets().filter(m=>m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<=300);
- if(!list.length){S.cd3=0.3;toast("범위 안에 적이 없어요 · 0.3초 후 재장전");return}
- S.cd3=2;ensureAudio();sfx("skill");S.shake=0.3;S.invuln=Math.max(S.invuln,0.3);
+ if(!list.length){S.cd3=0.1;toast("범위 안에 적이 없어요 · 0.3초 후 재장전");return}
+ S.cd3=0.5;ensureAudio();sfx("skill");S.shake=0.3;S.invuln=Math.max(S.invuln,0.3);
  S.pullRing={t:0,dur:0.25};
  S.pulls=list.map((m,i)=>({m,sx:m.x,sy:m.y,a:i/list.length*Math.PI*2,t:0,dur:0.25}));
 }
@@ -1809,8 +1811,11 @@ function updHpRegen(dt){
 let synced=false,lastSync=0,pushT=0,pollT=0;
 function mergeSave(saved){
  const d=defaults(),n=(v,f)=>Number.isFinite(Number(v))?Number(v):f;
- const m={...d,...saved,mats:{...d.mats,...(saved.mats||{})},duplicates:{...d.duplicates,...(saved.duplicates||{})},enhance:{...d.enhance,...(saved.enhance||{})},lootLog:Array.isArray(saved.lootLog)?saved.lootLog:[],achClaimed:saved.achClaimed||{}};
+ const m={...d,...saved,mats:{...d.mats,...(saved.mats||{})},essences:{...d.essences,...(saved.essences||{})},duplicates:{...d.duplicates,...(saved.duplicates||{})},enhance:{...d.enhance,...(saved.enhance||{})},lootLog:Array.isArray(saved.lootLog)?saved.lootLog:[],achClaimed:saved.achClaimed||{}};
  m.owned=Array.isArray(m.owned)?m.owned.filter(k=>weapons[k]):["wood"];
+  if(!m.essences||typeof m.essences!=="object")m.essences={...d.essences};
+  if(!["none","fire","ice","lightning","nature","holy","void"].includes(m.essence))m.essence="none";
+  for(const k of Object.keys(d.essences))m.essences[k]=Math.max(0,Math.floor(Number(m.essences[k])||0));
  if(!m.owned.includes("wood"))m.owned.unshift("wood");
  m.maxStage=Math.max(1,Math.floor(Number(m.maxStage)||1),Math.floor(Number(m.stage)||1));
  if(m.loc!=="field"&&m.loc!=="plaza")m.loc="plaza";
@@ -1857,7 +1862,7 @@ const xpNeed=()=>30+(data.level-1)*20;
 /* 강화: 같은 검의 "강화 수치가 같은" 2자루를 합치면 +1 한 자루가 돼요 · 최대 +5 · 단계당 기본 공격력의 20~30%(최소 0.8) */
 const ENH_MAX=5;
 const enhLv=k=>Math.min(ENH_MAX,data.enhance[k]||0);
-const atkAt=(k,lv)=>weapons[k].atk+(weapons[k].adminOnly?0:Math.round(Math.max(0.8,weapons[k].atk*(weapons[k].enh||0.2))*lv));
+const atkAt=(k,lv)=>{const b=weapons[k].atk+(weapons[k].adminOnly?0:Math.round(Math.max(0.8,weapons[k].atk*(weapons[k].enh||0.2))*lv));return weapons[k].adminOnly?b:Math.round(b*1.5)};
 const atkOf=k=>atkAt(k,enhLv(k));
 /* 검 보관: data.stock[검][강화수]=자루 수. enhance[k]=가장 높은 강화 수치(장착·공격력 기준), duplicates[k]=전체 자루 수-1 로 항상 동기화 */
 function stockTop(st){let t=0;for(const l in st)if(st[l]>0)t=Math.max(t,Number(l));return t}
@@ -2225,6 +2230,7 @@ function nearestTarget(maxD){
 function hitMon(m,dmg,crit){
  if(!m.alive)return;
  m.hp-=dmg;m.hit=0.12;
+  if(data.weapon==="enchant"&&data.essence!=="none"){const e=data.essence;if(e==="fire")igniteMon(m,Math.max(1,Math.round(dmg*0.18)));else if(e==="ice")slowMon(m);else if(e==="lightning"){for(const other of allTargets()){if(other!==m&&other.alive&&Math.hypot(other.x-m.x,other.y-m.y)<95){other.hp-=Math.max(1,Math.round(dmg*0.22));other.hit=0.08;addText(other.x,other.y-20,"⚡"+Math.round(dmg*0.22),"#ffe66d");if(other.hp<=0)killMon(other)}}}else if(e==="holy"&&m.type==="boss"){m.hp-=Math.round(dmg*0.25)}}
  const a=Math.atan2(m.y-S.py,m.x-S.px);m.kx=Math.cos(a)*160;m.ky=Math.sin(a)*160;
  addText(m.x,m.y-m.r-30,String(dmg),crit?"#ffd166":"#ffffff");
  sfx("hit");burst(m.x,m.y,judgeOn()?"#ffffff":(SWORD_HIT[data.weapon]||"#ffffff"),4);
@@ -2252,6 +2258,14 @@ function rollDrops(m,boss){
   addText(m.x,m.y-38,drops.join(" +"),"#6ee7b7");
  }
 }
+/* 월드 보스 보상 훅: 월드 보스 시스템이 구현되면 보스 속성 키를 전달해 지급합니다. 일반 필드 몬스터는 에센스를 드롭하지 않습니다. */
+function grantWorldBossEssence(attribute){
+ const key=({fire:"fire",flame:"fire",ice:"ice",frost:"ice",lightning:"lightning",thunder:"lightning",nature:"nature",holy:"holy",light:"holy",void:"void",dark:"void"})[String(attribute||"").toLowerCase()];
+ if(!key||!ESSENCES[key])return false;
+ data.essences[key]=(data.essences[key]||0)+1;
+ data.lootLog.unshift({time:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),monster:"월드 보스",drops:ESSENCES[key].name});data.lootLog=data.lootLog.slice(0,30);
+ save();toast("월드 보스 보상: "+ESSENCES[key].name+" 획득!");return true;
+}
 function killMon(m){
  m.alive=false;m.hit=0;
  const boss=m.type==="boss";
@@ -2262,6 +2276,7 @@ function killMon(m){
  /* 심판의 검으로 처치해도 골드·경험치·기록·재료 드롭 전부 정상 지급 */
  rollDrops(m,boss);
  data.kills++;track("kill");
+  if(data.weapon==="enchant"&&data.essence==="nature")data.hp=Math.min(100,data.hp+4);
  const rm=stageInfo().rewardMul;
  const gold=Math.round((boss?35:8)*rm),xpg=Math.round((boss?25:10)*rm);data.gold+=gold;data.xp+=xpg;
  addText(m.x,m.y-14,"+"+gold+"G","#ffd166");
@@ -2286,19 +2301,20 @@ function attack(){
  S.swing={t:0,dur:0.18,ang};
  if(net)net.ch.send({type:"broadcast",event:"swing",payload:{id:net.id,ang}});
  if(judgeOn()){for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<95)hitMon(m,judgeDmg(m),false)}}
- else if(t){const crit=Math.random()<0.1;hitMon(t,atkNow()*2*(crit?2:1),crit)}
+ else if(t){const crit=Math.random()<(data.weapon==="enchant"&&data.essence==="void"?0.25:0.1);hitMon(t,atkNow()*2*(crit?2:1),crit)}
 }
 /* ── 검별 간단 스킬 · 약한 이펙트 (심판의 검 제외) ── */
 const SWORD_SK={
  wood:{n1:"회전\n베기",n2:"돌진",d:"회전 베기(주변) / 돌진"},
  iron:{n1:"강타",n2:"돌진",d:"강타(전방 부채꼴 · 강한 넉백) / 돌진"},
  flame:{n1:"화염\n폭발",n2:"불꽃\n돌진",d:"화염 폭발(주변 + 화상) / 불꽃 돌진(화상)"},
+ long:{n1:"장검\n휘두르기",n2:"돌진\n베기",d:"장검 휘두르기(넓고 긴 부채꼴 · 높은 데미지) / 돌진 베기(돌진 · 피해)"},
  moon:{n1:"월광\n참격",n2:"월광\n도약",d:"월광 참격(직선 관통) / 월광 도약(빠른 돌진 · 긴 무적)"},
  void:{n1:"공허\n파동",n2:"차원\n도약",d:"공허 파동(주변 + 둔화) / 차원 도약(도착 시 파동)"}
 };
 const skName=n=>{const k=SWORD_SK[data.weapon]||SWORD_SK.wood;return n===1?k.n1:k.n2};
-const SWORD_RGB={wood:"255,255,255",iron:"205,214,232",flame:"255,140,60",moon:"150,200,255",void:"190,120,255"};
-const SWORD_HIT={wood:"#ffffff",iron:"#cfd6e6",flame:"#ff8a3d",moon:"#9fd0ff",void:"#c08aff"};
+const SWORD_RGB={wood:"255,255,255",iron:"205,214,232",flame:"255,140,60",long:"240,220,150",enchant:"190,160,255",moon:"150,200,255",void:"190,120,255"};
+const SWORD_HIT={wood:"#ffffff",iron:"#cfd6e6",flame:"#ff8a3d",long:"#f0dc96",enchant:"#c6a7ff",moon:"#9fd0ff",void:"#c08aff"};
 const swordRgb=()=>SWORD_RGB[data.weapon]||"255,255,255";
 function igniteMon(m,atk){if(m.alive)m.burn={t:3,tick:0.5,dmg:Math.max(1,Math.round(atk*0.4))}}
 function slowMon(m){if(m.alive&&m.type!=="boss")m.slowT=2.5}
@@ -2324,6 +2340,15 @@ function swordSkill1(){
  }else if(w==="flame"){
   ring(120,"#ff8a3d");
   for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<120){hitMon(m,Math.round(atk*3),false);igniteMon(m,atk)}}
+ }else if(w==="long"){
+  const a=aimAng();S.cd1=7;
+  S.fx.push({kind:"arc",x:S.px,y:S.py,ang:a,len:190,span:1.8,t:0.3,max:0.3,col:"240,220,150"});
+  for(const m of allTargets()){
+   if(!m.alive)continue;
+   const dx=m.x-S.px,dy=m.y-S.py,d=Math.hypot(dx,dy);
+   if(d<190+m.r){let da=Math.abs(Math.atan2(dy,dx)-a);if(da>Math.PI)da=Math.PI*2-da;
+    if(da<0.9){hitMon(m,Math.round(atk*4),false);m.kx*=1.4;m.ky*=1.4}}
+  }
  }else if(w==="moon"){
   const a=aimAng(),L=240,ca=Math.cos(a),sa=Math.sin(a);
   S.fx.push({kind:"line",x:S.px,y:S.py,ang:a,len:L,t:0.28,max:0.28,col:"160,205,255"});
@@ -2858,8 +2883,8 @@ function renderView(){
    let detail="";
    if(invSel){
     const [k,is]=invSel.split("_"),i=Number(is),w=weapons[k],lv=w.adminOnly?0:(copiesOf(k)[i]||0),col=RARITY_COLOR[w.rarity]||"#929bb0";
-    const atk=k==="judge"?"공격력 몬스터 HP의 1000%":"공격력 "+(lv?atkAt(k,lv)+" (기본 "+w.atk+" + 강화 "+lv+")":w.atk);
-    const lines=[atk,SWORD_SK[k]?"스킬: "+SWORD_SK[k].d:"",k==="judge"?"패시브: 빛의 결계(받는 피해 90% 감소 · 상태 이상 면역)":"",k==="judge"&&!isAdmin&&data.loans&&data.loans.judge?new Date(data.loans.judge).toLocaleString("ko-KR")+"까지 하사":"",i>0?"여분 검 · 강화 탭에서 강화 수치가 같은 검끼리 합쳐 강화해요.":""].filter(Boolean);
+    const atk=k==="judge"?"공격력 몬스터 HP의 1000%":"공격력 "+(lv?atkAt(k,lv)+" (기본 "+atkAt(k,0)+" + 강화 "+lv+"단계)":atkAt(k,0));
+    const lines=[atk,SWORD_SK[k]?"스킬: "+SWORD_SK[k].d:"",k==="judge"?"패시브: 빛의 결계(받는 피해 90% 감소 · 상태 이상 면역)":k==="enchant"?"인챈트: "+(data.essence==="none"?"에센스 미장착":ESSENCES[data.essence].name+" · "+ESSENCES[data.essence].desc):"",k==="judge"&&!isAdmin&&data.loans&&data.loans.judge?new Date(data.loans.judge).toLocaleString("ko-KR")+"까지 하사":"",i>0?"여분 검 · 강화 탭에서 강화 수치가 같은 검끼리 합쳐 강화해요.":""].filter(Boolean);
     detail=`<div class="sg-detail" style="border-color:${col}"><div><b>${esc(w.name)}${lv?` (강화 ${lv})`:""}</b> <span class="role-badge" style="color:${col}">${esc(w.rarity)}</span></div><div class="sg-note">${lines.map(esc).join("<br>")}</div><div style="display:flex;gap:8px">${i===0?`<button data-action="equip:${k}" ${data.weapon===k?"disabled":""}>${data.weapon===k?"장착 중":"장착"}</button>`:""}<button data-action="inv:">닫기</button></div></div>`;
    }
    return detail+`<div class="sg-inv">${tiles.map(tile).join("")}</div>`;
@@ -2883,13 +2908,19 @@ function renderView(){
  }else if(tab==="craft"){
   h=row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G"+(data.owned.includes("iron")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50)
    +row("화염 검","철 검 보유 + 화염 조각 5개 + 핵 3개 + 100G"+(data.owned.includes("flame")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:flame",label:"조합"},!data.owned.includes("iron")||data.mats.flame<5||data.mats.core<3||data.gold<100)
-   +row("월광 검","화염 검 +5 1자루(소모) + 달빛 가루 50개"+(data.owned.includes("moon")?" · 이미 보유 중 → 중복 +1 (강화 재료)":"")+` · 보유 +5 화염 검 ${(data.stock&&data.stock.flame&&data.stock.flame[5])||0}자루`,{action:"craft:moon",label:"조합"},!(data.stock&&data.stock.flame&&data.stock.flame[5]>0)||data.mats.moon<50);
+   +row("장검","철 검 보유 + 철 광석 15개 + 핵 6개 + 200G"+(data.owned.includes("long")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:long",label:"조합"},!data.owned.includes("iron")||data.mats.iron<15||data.mats.core<6||data.gold<200)
+   +row("인챈트 소드","장검 1자루 + 몬스터 핵 100개 + 철 광석 100개 · 공격력 40 (장검보다 낮음), 공속은 장검과 동일"+(data.owned.includes("enchant")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:enchant",label:"조합"},!data.owned.includes("long")||data.mats.core<100||data.mats.iron<100)
+    +row("월광 검","화염 검 +5 1자루(소모) + 달빛 가루 50개"+(data.owned.includes("moon")?" · 이미 보유 중 → 중복 +1 (강화 재료)":"")+` · 보유 +5 화염 검 ${(data.stock&&data.stock.flame&&data.stock.flame[5])||0}자루`,{action:"craft:moon",label:"조합"},!(data.stock&&data.stock.flame&&data.stock.flame[5]>0)||data.mats.moon<50)
+    +`<h3 style="margin:18px 0 8px">에센스 인챈트</h3><p class="sg-note">인챈트 소드를 장착하고 보유한 에센스를 선택하세요. 에센스는 속성별 월드 보스 처치 보상으로 획득하도록 설계되어 있으며, 월드 보스는 아직 미구현입니다.</p>`
+    +row("현재 속성",data.essence==="none"?"에센스 미장착":ESSENCES[data.essence].name+" · "+ESSENCES[data.essence].desc,{action:"essence:none",label:"해제"},data.essence==="none")
+    +Object.entries(ESSENCES).map(([ek,e])=>row(e.icon+" "+e.name,`${e.desc} · 보유 ${data.essences[ek]||0}개${data.essence===ek?" · 현재 장착":""}`,{action:"essence:"+ek,label:data.essence===ek?"장착 중":"교체"},!data.owned.includes("enchant")||!(data.essences[ek]>0)||data.essence===ek)).join("");
  }else if(tab==="enhance"){
   h=enhanceHtml();
  }else if(tab==="gacha"){
   h=`<p>뽑기권 ${data.tickets||0}장</p>`+row("검 랜덤 뽑기","나무 75% · 철 20% · 화염 4% · 월광 0.75% · 공허 0.25% · 천장 없음",{action:"gacha",label:"뽑기"},(data.tickets||0)<1);
  }else if(tab==="lost"){
   h=row("철 광석",`보유 ${data.mats.iron}개`)+row("몬스터 핵",`보유 ${data.mats.core}개`)+row("화염 조각",`보유 ${data.mats.flame}개`)+row("달빛 가루",`보유 ${data.mats.moon}개`)
+    +Object.entries(ESSENCES).map(([ek,e])=>row(e.icon+" "+e.name,`보유 ${data.essences[ek]||0}개 · ${e.desc}`)).join("")
    +`<h3 style="margin:16px 0 8px">드롭 확률 (모든 몬스터 공통)</h3><p class="sg-note">철 광석 20% · 몬스터 핵 8% · 화염 조각 4% · 달빛 가루 1%. 각 아이템은 독립적으로 판정됩니다.</p>`
    +`<h3 style="margin:16px 0 8px">최근 유실물 획득 내역</h3>`
    +(data.lootLog.length?data.lootLog.map(x=>`<div class="sg-row"><div><b>${esc(x.drops)}</b><div class="sg-note">${x.time} · ${x.monster} 처치</div></div></div>`).join(""):`<p class="sg-note">아직 획득 내역이 없습니다.</p>`);
@@ -2941,9 +2972,19 @@ function action(a){
  else if(type==="ticket"){
   if(data.gold>=100){data.gold-=100;data.tickets=(data.tickets||0)+1;toast("뽑기권을 구매했어요.")}else toast("골드가 부족해요.");
  }
- else if(type==="craft"){
-  if(k==="iron"&&data.mats.iron>=5&&data.mats.core>=2&&data.gold>=50){data.mats.iron-=5;data.mats.core-=2;data.gold-=50;if(data.owned.includes(k)){giveCopy(k);toast("철 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("철 검 조합 성공!")}}
+ else if(type==="essence"){
+   if(k==="none"){data.essence="none";toast("에센스 인챈트를 해제했어요.")}
+   else if(!data.owned.includes("enchant"))toast("인챈트 소드를 먼저 조합해야 해요.")
+   else if(!ESSENCES[k]||!(data.essences[k]>0))toast("해당 에센스가 부족해요.")
+   else{data.essence=k;toast(ESSENCES[k].name+" 인챈트 적용!")}
+  }
+  else if(type==="craft"){
+  if(k==="enchant"&&data.owned.includes("long")&&data.mats.iron>=100&&data.mats.core>=100){
+    data.mats.iron-=100;data.mats.core-=100;const ls=data.stock.long||{};let consumed=false;for(const lv of Object.keys(ls).sort((a,b)=>Number(a)-Number(b))){if(ls[lv]>0){ls[lv]--;if(ls[lv]<=0)delete ls[lv];consumed=true;break}}
+    if(!consumed){data.mats.iron+=100;data.mats.core+=100;toast("장검을 찾을 수 없어요.")}else{if(stockTotal(ls)<1){data.owned=data.owned.filter(x=>x!=="long");delete data.stock.long;delete data.enhance.long;delete data.duplicates.long;if(data.weapon==="long")data.weapon="wood"}else resyncK("long");const had=data.owned.includes("enchant");giveCopy("enchant");toast(had?"인챈트 소드 조합 · 중복 획득 · 강화 재료 +1":"인챈트 소드 조합 성공!")}}
+   else if(k==="iron"&&data.mats.iron>=5&&data.mats.core>=2&&data.gold>=50){data.mats.iron-=5;data.mats.core-=2;data.gold-=50;if(data.owned.includes(k)){giveCopy(k);toast("철 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("철 검 조합 성공!")}}
   else if(k==="flame"&&data.owned.includes("iron")&&data.mats.flame>=5&&data.mats.core>=3&&data.gold>=100){data.mats.flame-=5;data.mats.core-=3;data.gold-=100;if(data.owned.includes(k)){giveCopy(k);toast("🔥 화염 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("🔥 화염 검 조합 성공!")}}
+  else if(k==="long"&&data.owned.includes("iron")&&data.mats.iron>=15&&data.mats.core>=6&&data.gold>=200){data.mats.iron-=15;data.mats.core-=6;data.gold-=200;if(data.owned.includes(k)){giveCopy(k);toast("장검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("장검 조합 성공!")}}
   else if(k==="moon"&&data.stock&&data.stock.flame&&data.stock.flame[5]>0&&data.mats.moon>=50){
    const fs=data.stock.flame;fs[5]--;if(fs[5]<=0)delete fs[5];
    data.mats.moon-=50;
