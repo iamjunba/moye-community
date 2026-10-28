@@ -777,9 +777,9 @@ async function loadAdminTable(){
  renderAdminTable();
 }
 /* 게임 저장 전용 편집기 (장비/재료/상태) */
-const GAME_WEAPONS={wood:"나무 검",iron:"철 검",flame:"화염 검",long:"장검",enchant:"인챈트 소드",moon:"월광 검",void:"공허 검",judge:"심판의 검(관리자)"};
+const GAME_WEAPONS={wood:"나무 검",iron:"철 검",flame:"화염 검",long:"장검",scythe:"낫",vscythe:"흡혈 낫",enchant:"인챈트 소드",moon:"월광 검",void:"공허 검",judge:"심판의 검(관리자)"};
 const GAME_ESS={fire:"🔥 화염 에센스",ice:"❄️ 빙결 에센스",lightning:"⚡ 번개 에센스",nature:"🌿 자연 에센스",holy:"✨ 신성 에센스",void:"🌌 공허 에센스"};
-const GAME_MATS={iron:"철 광석",core:"몬스터 핵",flame:"화염 조각",moon:"달빛 가루"};
+const GAME_MATS={iron:"철 광석",core:"몬스터 핵",flame:"화염 조각",moon:"달빛 가루",blood:"혈액",ingot:"철 주괴",steel:"강철"};
 const GAME_NUMS=[["level","레벨"],["xp","XP"],["gold","골드"],["hp","HP"],["stage","현재 스테이지"],["maxStage","최대 해금 스테이지"],["tickets","뽑기권"],["potions","물약"],["kills","처치 수"],["bossKills","보스 처치"]];
 function normGame(d){
  d=(d&&typeof d==="object")?d:{};
@@ -1257,16 +1257,17 @@ function setWorld(plaza){
  W=plaza?VW:VW*MAPSCALE;H=plaza?VH:VH*MAPSCALE;
  SAFE.x=W/2;SAFE.y=H/2;
 }
-const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:36,enh:0.2,rarity:"희귀"},long:{name:"장검",atk:46,enh:0.22,rarity:"희귀"},enchant:{name:"인챈트 소드",atk:300,enh:0.2,rarity:"울트라"},moon:{name:"월광 검",atk:58,enh:0.25,rarity:"영웅"},void:{name:"공허 검",atk:90,enh:0.3,rarity:"전설"},judge:{name:"심판의 검",atk:999,rarity:"관리자",adminOnly:true}};
+const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:36,enh:0.2,rarity:"희귀"},long:{name:"장검",atk:46,enh:0.22,rarity:"희귀"},scythe:{name:"낫",atk:42,enh:0.2,rarity:"희귀"},vscythe:{name:"흡혈 낫",atk:70,enh:0.25,rarity:"영웅"},enchant:{name:"인챈트 소드",atk:300,enh:0.2,rarity:"울트라"},moon:{name:"월광 검",atk:58,enh:0.25,rarity:"영웅"},void:{name:"공허 검",atk:90,enh:0.3,rarity:"전설"},judge:{name:"심판의 검",atk:999,rarity:"관리자",adminOnly:true}};
 const STAGES=[{name:"초원"},{name:"사막"},{name:"얼음 동굴"},{name:"화산"},{name:"늪지"},{name:"공허의 균열"}];
 const ESSENCES={fire:{name:"화염 에센스",icon:"🔥",color:"#ff7849",desc:"특수화상(타격마다 중첩): 피해량 25% 화상 + 몹 공격력 60% 감소"},ice:{name:"빙결 에센스",icon:"❄️",color:"#8bdcff",desc:"0.5초 특수빙결 (타격마다 중첩 · 빙결 중 받는 피해 2배 · 이후 3초간 이동속도 80% 감소)"},lightning:{name:"번개 에센스",icon:"⚡",color:"#ffe66d",desc:"반경 100 연쇄 피해 (피해량 75%)"},nature:{name:"자연 에센스",icon:"🌿",color:"#75e6a0",desc:"공격 시 피해량의 50% HP 회복"},holy:{name:"신성 에센스",icon:"✨",color:"#fff0a6",desc:"모든 몹에게 최대 HP 10% 추가 피해"},void:{name:"공허 에센스",icon:"🌌",color:"#c59aff",desc:"특수치명타 확률 100% (피해 3배)"}};
 const TYPES={
  normal:{r:13,speed:55,dmg:5,hp:30,detect:125},
  fast:{r:10,speed:110,dmg:4,hp:18,detect:160},
  ranged:{r:13,speed:40,dmg:6,hp:24,detect:230},
+ bat:{r:9,speed:100,dmg:4,hp:14,detect:170},
  boss:{r:18,speed:60,dmg:12,hp:0,detect:260}
 };
-const SPRITE_OF={normal:"slime",fast:"imp",ranged:"mage",boss:"golem"};
+const SPRITE_OF={normal:"slime",fast:"imp",ranged:"mage",bat:"bat",boss:"golem"};
 /* 안전구역: 이 안에서는 플레이어도 공격할 수 없고, 몬스터도 들어오거나 공격할 수 없음 */
 const SAFE={x:400,y:300,r:70};
 /* 안전구역 해제 조건(필드): 보스가 등장해 있거나, 몬스터가 나에게 어그로가 걸려 있을 때 */
@@ -1299,7 +1300,7 @@ const ACHIEVEMENTS=[
 ];
 
 /* ── 저장 데이터 ── */
-const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,long:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,long:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0},essences:{fire:0,ice:0,lightning:0,nature:0,holy:0,void:0},essence:"none",tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{wood:true},maxStage:1,loc:"plaza"});
+const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,long:0,scythe:0,vscythe:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,long:0,scythe:0,vscythe:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0,blood:0,ingot:0,steel:0},essences:{fire:0,ice:0,lightning:0,nature:0,holy:0,void:0},essence:"none",tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{wood:true},maxStage:1,loc:"plaza"});
 let data;
 try{
  const saved=JSON.parse(localStorage.getItem(SAVE)||"{}");const d=defaults();
@@ -1434,8 +1435,8 @@ function syncCodex(){
  return added;
 }
 const RARITY_COLOR={"기본":"#929bb0","일반":"#6ee7b7","희귀":"#6aa8ff","영웅":"#b07cff","전설":"#ffd166","관리자":"#ff657a","울트라":"#ff4df0"};
-const OBTAIN={wood:"기본 지급",iron:"상점 120G · 조합(철 광석 5 + 몬스터 핵 2 + 50G) · 뽑기 20%",flame:"조합(철 검 + 화염 조각 5 + 몬스터 핵 3 + 100G) · 뽑기 4%",long:"조합(철 검 + 철 광석 15 + 몬스터 핵 6 + 200G)",moon:"조합(화염 검 +5 1자루 + 달빛 가루 50개) · 뽑기 0.75%",void:"뽑기 0.25%",judge:"관리자 전용 · 관리자가 기간 한정으로 하사"};
-const LORE={wood:"초원의 수련생이 처음 쥐는 평범한 나무 검.",iron:"대장간에서 두드려 만든 믿음직한 철 검.",flame:"칼날에 꺼지지 않는 불씨가 깃든 검.",long:"긴 칼날로 멀리서 적을 베어 넘기는 검. 사거리가 길다.",moon:"달빛을 머금은 칼날이 어둠 속에서 은은히 빛난다.",void:"공허에서 건져 올렸다는 전설의 검. 휘두르면 소리가 사라진다.",judge:"시볼의 질서를 지키는 자만이 쥘 수 있는 검. 베이는 것은 몬스터뿐이다."};
+const OBTAIN={wood:"기본 지급",iron:"상점 120G · 조합(철 광석 5 + 몬스터 핵 2 + 50G) · 뽑기 20%",flame:"조합(철 검 + 화염 조각 5 + 몬스터 핵 3 + 100G) · 뽑기 4%",long:"조합(철 검 + 철 광석 15 + 몬스터 핵 6 + 200G)",vscythe:"조합(낫 1자루 소모 + 강철 30 + 혈액 10)",scythe:"조합(철 검 + 철 광석 120 + 몬스터 핵 50 + 1500G)",moon:"조합(화염 검 +5 1자루 + 달빛 가루 50개) · 뽑기 0.75%",void:"뽑기 0.25%",judge:"관리자 전용 · 관리자가 기간 한정으로 하사"};
+const LORE={wood:"초원의 수련생이 처음 쥐는 평범한 나무 검.",iron:"대장간에서 두드려 만든 믿음직한 철 검.",flame:"칼날에 꺼지지 않는 불씨가 깃든 검.",long:"긴 칼날로 멀리서 적을 베어 넘기는 검. 사거리가 길다.",vscythe:"피를 머금은 낫. 벨 때마다 상처 입은 주인의 숨이 조금씩 돌아온다.",scythe:"화려함 없이 묵직하게, 풀을 베듯 적을 쓸어 넘기는 낫.",moon:"달빛을 머금은 칼날이 어둠 속에서 은은히 빛난다.",void:"공허에서 건져 올렸다는 전설의 검. 휘두르면 소리가 사라진다.",judge:"시볼의 질서를 지키는 자만이 쥘 수 있는 검. 베이는 것은 몬스터뿐이다."};
 function codexHtml(){
  const base=Object.keys(weapons).filter(k=>!weapons[k].adminOnly);
  const found=codexCount();
@@ -1955,7 +1956,7 @@ function copiesOf(k){
  return out;
 }
 syncStockOf(data);
-const atkNow=()=>Math.round(atkOf(data.weapon)*(S.status&&S.status.weak>0?0.7:1)*(data.weapon==="enchant"&&S.overd?1.5:1));
+const atkNow=()=>Math.round(atkOf(data.weapon)*(S.status&&S.status.weak>0?0.7:1)*(S.status&&S.status.disease>0?0.5:1)*(data.weapon==="enchant"&&S.overd?1.5:1));
 
 /* ── 도트 스프라이트 생성 ── */
 const OUT="#1b1322";
@@ -1970,6 +1971,7 @@ const MAT={
  wood:["#8a5a2b","#b88750","#5a3815"],
  slime:["#7ee89a","#d2ffdc","#2f9e5b"],
  imp:["#ff8a5c","#ffc7a8","#b8482a"],
+ bat:["#6b4a8a","#a784c9","#3a2650"],
  robe:["#4b3d6e","#8270b0","#2a2140"],
  hood:["#5b4a86","#9584c8","#33284f"],
  rock:["#8a8f9e","#cdd2dc","#474c5a"]
@@ -2053,6 +2055,12 @@ function playerPrims(f){
 }
 const slimePrims=f=>[["E","slime",8,f?9.5:8.5,6,f?4.3:5],["R","#14101a",5,8,2,2],["R","#14101a",9,8,2,2],["P","#ffffff",5,7]];
 const impPrims=f=>[["E","imp",7,8.5,4.2,4.2],["T","imp",2,7,2,1,6,5],["T","imp",12,7,12,1,8,5],["R","imp",4,9,7,4],["P","#ffe066",6,7],["P","#ffe066",9,7],["R","imp",5,11,2,f?2:3],["R","imp",8,11,2,f?3:2],["P","imp",12,11]];
+const batPrims=f=>[
+ f?["T","bat",6,6,0,10,4,5]:["T","bat",6,6,0,1,3,9],
+ f?["T","bat",10,6,16,10,12,5]:["T","bat",10,6,16,1,13,9],
+ ["E","bat",8,7,2.6,3.2],["T","bat",6,5,6,2,8,4],["T","bat",10,5,10,2,8,4],
+ ["P","#ff5a6a",7,6],["P","#ff5a6a",9,6]
+];
 function magePrims(f){
  const o=f?1.6:1.2;
  return[["T","robe",8,5,3,17,13,17],["E","robe",8,13,5,4],["E","hood",8,5,4,4],["R","#14101a",6,5,4,2],["P","#ffe066",7,5],["P","#ffe066",9,5],["R","wood",13,3,1,13],["E","#9ff0ff",13.5,2.5,o,o],["R","robe",3,10,2,4]];
@@ -2077,6 +2085,7 @@ function prerenderSprites(){
  SPR.player=mk(16,22,i=>playerPrims(i===4?-1:i),5,3);
  SPR.slime=mk(16,14,slimePrims,2,3);
  SPR.imp=mk(14,14,impPrims,2,3);
+ SPR.bat=mk(16,12,batPrims,2,3);
  SPR.mage=mk(16,18,magePrims,2,3);
  SPR.golem=mk(32,32,golemPrims,2,3);
  SPR.orb=mk(7,7,()=>[["E","#9ff0ff",3,3,3,3],["P","#ffffff",3,3]],1,3);
@@ -2124,7 +2133,7 @@ function prerenderBG(){
 }
 
 /* ── 상태 ── */
-const S={running:false,raf:0,last:0,time:0,hudAt:0,px:400,py:300,vx:0,vy:0,face:1,invuln:0,flash:0,shake:0,attackReady:0,cd1:0,cd2:0,dash:null,swing:null,ring:null,clearTimer:0,roll:null,rollCd:0,after:[],afterAcc:0,netT:0,mons:[],tele:[],boss:null,bossActive:false,projs:[],parts:[],texts:[],bolts:[],chain:null,chainFx:[],cd3:0,sanct:null,pulls:null,pullRing:null,guard:0,chainSeq:null,slashFx:[],god:false,bossWarn:0,fx:[],status:{weak:0,slow:0,burn:0,poison:0,stun:0},stunImm:0,dotT:0,loc:"field"};
+const S={running:false,raf:0,last:0,time:0,hudAt:0,px:400,py:300,vx:0,vy:0,face:1,invuln:0,flash:0,shake:0,attackReady:0,cd1:0,cd2:0,dash:null,swing:null,ring:null,clearTimer:0,roll:null,rollCd:0,after:[],afterAcc:0,netT:0,mons:[],tele:[],boss:null,bossActive:false,projs:[],parts:[],texts:[],bolts:[],chain:null,chainFx:[],cd3:0,sanct:null,pulls:null,pullRing:null,guard:0,chainSeq:null,slashFx:[],god:false,bossWarn:0,fx:[],status:{weak:0,slow:0,burn:0,poison:0,stun:0,disease:0},stunImm:0,dotT:0,loc:"field"};
 let enhSel=null;
 function enhanceHtml(){
  /* 강화 수치별로 묶은 목록: 같은 검이라도 +0, +1 ... 각각 선택해 강화할 수 있어요 */
@@ -2185,6 +2194,17 @@ function makeMon(kind,x,y,hp,dmg){
  return{type:kind,hx:x,hy:y,x,y,hp,max:hp,dmg:dmg??TYPES[kind].dmg,r:TYPES[kind].r,alive:true,respawn:0,hit:0,kx:0,ky:0,shootCd:1+Math.random()*1.5};
 }
 /* 보스는 스테이지의 모든 몬스터를 동시에 처치해야 등장합니다. */
+const BAT_CHANCE=0.06; /* 일반 몬스터 한 칸이 (최초 생성·리스폰 때마다) 박쥐가 될 확률 */
+function setKind(m,kind,st){
+ m.type=kind;m.r=TYPES[kind].r;
+ m.max=Math.round(TYPES[kind].hp*st.hpMul);m.hp=m.max;
+ m.dmg=Math.max(1,Math.round(TYPES[kind].dmg*st.dmgMul));
+ m.stat=kind==="bat"?(stageStatusOf()||undefined):m.baseStat; /* 박쥐는 항상 그 스테이지의 속성을 지님 */
+}
+function rollBat(m){
+ if(!m.baseKind)return;
+ setKind(m,Math.random()<BAT_CHANCE?"bat":m.baseKind,stageInfo());
+}
 function spawnStage(){
  const st=stageInfo();
  S.mons=[];S.projs=[];S.tele=[];S.bossActive=false;S.bossWarn=0;S.stageKills=0;S.bossNotified=false;
@@ -2197,6 +2217,7 @@ function spawnStage(){
   }
   const mm=makeMon(kind,sx,sy,Math.round(TYPES[kind].hp*st.hpMul),Math.max(1,Math.round(TYPES[kind].dmg*st.dmgMul)));
   if(stageStatusOf()&&i%4===0)mm.stat=stageStatusOf(); /* 4마리 중 1마리는 상태 이상 몬스터 */
+  mm.baseKind=kind;mm.baseStat=mm.stat;rollBat(mm);
   S.mons.push(mm);
  }
  S.boss=makeMon("boss",bossPos().x,bossPos().y,st.bossHp,Math.max(1,Math.round(TYPES.boss.dmg*st.dmgMul)));S.boss.stat=stageStatusOf()||undefined;
@@ -2288,6 +2309,7 @@ function hitMon(m,dmg,crit){
  if(m.freezeT>0)dmg*=2;
  dmg=Math.round(dmg);
  m.hp-=dmg;m.hit=0.12;
+ if(data.weapon==="vscythe"&&!S.rushLeech&&data.hp>0&&data.hp<100){const hl=Math.max(1,Math.round(dmg*0.1));data.hp=Math.min(100,data.hp+hl);addText(S.px,S.py-40,"+"+hl,"#ff7a8a")} /* 흡혈 */
  if(data.weapon==="enchant"){for(let rp=SP?2:1;rp>0;rp--){
   if(ES("fire")){{const bd={t:3,tick:0.5,dmg:Math.max(1,Math.round(dmg*0.25))};(m.burns||(m.burns=[])).push(bd);if(S.overd)m.burns.push({...bd});}if(m.burns.length>300)m.burns.shift();m.weakT=3}
   if(ES("ice")){m.freezeT=Math.min(10,(m.freezeT||0)+(S.overd?1:0.5));m.iceSlowT=3}
@@ -2315,6 +2337,7 @@ function rollDrops(m,boss){
  if(Math.random()<0.08){data.mats.core++;drops.push("몬스터 핵")}
  if(Math.random()<0.04){data.mats.flame++;drops.push("화염 조각")}
  if(Math.random()<0.01){data.mats.moon++;drops.push("달빛 가루")}
+ if(m.type==="bat"&&Math.random()<0.5){data.mats.blood=(data.mats.blood||0)+1;drops.push("혈액")}
  if(drops.length){
   data.lootLog.unshift({time:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),monster:boss?"보스":"몬스터",drops:drops.join(", ")});
   data.lootLog=data.lootLog.slice(0,30);
@@ -2357,7 +2380,7 @@ function killMon(m){
 function attack(){
  if(!S.running||data.hp<=0||S.time<S.attackReady||S.chainSeq||stunned())return;
  if(inSafe()){if(S.loc==="plaza"&&interact())return;safeMsg();return}
- S.attackReady=S.time+(data.weapon==="enchant"&&S.overd?0.2:0.36);ensureAudio();
+ S.attackReady=S.time+(data.weapon==="enchant"&&S.overd?0.2:data.weapon==="long"?0.55:0.36);ensureAudio();
  const t=nearestTarget(judgeOn()?95:55);
  const ang=t?Math.atan2(t.y-S.py,t.x-S.px):(S.face>0?0:Math.PI);
  S.swing={t:0,dur:0.18,ang};
@@ -2373,13 +2396,100 @@ const SWORD_SK={
  iron:{n1:"강타",n2:"돌진",d:"강타(전방 부채꼴 · 강한 넉백) / 돌진"},
  flame:{n1:"화염\n폭발",n2:"불꽃\n돌진",d:"화염 폭발(주변 + 화상) / 불꽃 돌진(화상)"},
  long:{n1:"장검\n휘두르기",n2:"돌진\n베기",d:"장검 휘두르기(넓고 긴 부채꼴 · 높은 데미지) / 돌진 베기(돌진 · 피해)"},
+ vscythe:{n1:"피의\n질주",n2:"박쥐떼",d:"피의 질주(돌진하며 범위 내 몹 타격 · 준 피해의 20% 흡혈) / 박쥐떼(ON/OFF · 가장 가까운 몬스터를 표적으로 삼아 범위 75px에 0.5초마다 10 피해) / 패시브 흡혈(준 피해의 10% 회복)"},
+ scythe:{n1:"횡베기",n2:"회전\n베기",d:"횡베기(전방 넓은 부채꼴) / 회전 베기(주변 360도)"},
  moon:{n1:"월광\n참격",n2:"월광\n도약",d:"월광 참격(직선 관통) / 월광 도약(빠른 돌진 · 긴 무적)"},
  enchant:{n1:"원소의\n폭주",n2:"자기파괴\n원소",d:"원소의 폭주(장착 에센스 수×30 반경 폭발 · 장착 에센스 효과 적용 · 쿨 0.5초) / 자기파괴적 원소(ON/OFF · 받는 피해 1%만 받고 원래 받을 피해(받은 피해의 100배) 반사) / 원소 과부하(ON/OFF · 공격력 1.5배 · 공속 증가 · 화상/빙결 2배 중첩 · 받는 피해 1.2배) / 분열의 원소(5번 · ON/OFF · 모든 에센스 효과 2번씩 발동)"},
  void:{n1:"공허\n파동",n2:"차원\n도약",d:"공허 파동(주변 + 둔화) / 차원 도약(도착 시 파동)"}
 };
-const skName=n=>{const k=SWORD_SK[data.weapon]||SWORD_SK.wood;if(n===2&&data.weapon==="enchant"&&S.refl)return"반사\nON";return n===1?k.n1:k.n2};
-const SWORD_RGB={wood:"255,255,255",iron:"205,214,232",flame:"255,140,60",long:"240,220,150",enchant:"190,160,255",moon:"150,200,255",void:"190,120,255"};
-const SWORD_HIT={wood:"#ffffff",iron:"#cfd6e6",flame:"#ff8a3d",long:"#f0dc96",enchant:"#c6a7ff",moon:"#9fd0ff",void:"#c08aff"};
+/* 박쥐 펫(흡혈 낫 장착 시): 플레이어 곁을 날아다니는 장식용 박쥐 · 효과 없음 */
+const PET={x:0,y:0,on:false};
+function updPet(dt){
+ if(data.weapon!=="vscythe"||data.hp<=0){PET.on=false;return}
+ const t=S.time,tx=S.px-S.face*22+Math.cos(t*1.4)*20,ty=S.py-34+Math.sin(t*2.3)*9+Math.sin(t*0.9)*5;
+ if(!PET.on){PET.on=true;PET.x=S.px;PET.y=S.py-20}
+ const k=Math.min(1,dt*3.5);PET.x+=(tx-PET.x)*k;PET.y+=(ty-PET.y)*k;
+}
+function drawPet(){
+ if(!PET.on)return;
+ const fr=Math.floor(S.time*10)%2,flip=S.px<PET.x?1:-1;
+ ctx.fillStyle="rgba(0,0,0,0.18)";ctx.beginPath();ctx.ellipse(PET.x,S.py+PR*0.9,5,2,0,0,Math.PI*2);ctx.fill();
+ ctx.save();ctx.translate(PET.x,PET.y);ctx.scale(0.55,0.55);
+ drawSprite(SPR.bat,fr,false,0,0,flip,true);
+ ctx.restore();
+}
+/* 인챈트 소드 장식: 6색 구슬이 서로 다른 궤도로 플레이어 주위를 돎 (효과 없음) */
+const ORB_CFG=[[30,12,0.0,1.9,0.0],[34,14,1.05,-1.5,0.9],[38,10,2.1,1.2,1.7],[28,15,3.15,-2.2,2.5],[42,11,4.2,1.65,0.4],[33,13,5.25,-1.1,1.3]]; /* [가로 반경, 세로 반경, 시작 각, 속도, 기울기] */
+function drawOrbs(){
+ if(data.weapon!=="enchant")return;
+ const t=S.time,keys=Object.keys(ESSENCES),cy0=S.py-12;
+ ctx.save();
+ for(let i=0;i<ORB_CFG.length;i++){
+  const [rx,ry,ph,sp,tl]=ORB_CFG[i],a=t*sp+ph,c=ESSENCES[keys[i]].color;
+  const ex=Math.cos(a)*rx,ey=Math.sin(a)*ry,ct=Math.cos(tl),st=Math.sin(tl);
+  const x=S.px+ex*ct-ey*st,y=cy0+ex*st+ey*ct+Math.sin(t*3+i)*2;
+  const back=Math.sin(a)<0,r=back?2.6:3.6;
+  ctx.globalAlpha=back?0.75:1;ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=10;
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;ctx.globalAlpha=back?0.5:0.9;ctx.fillStyle="#ffffff";
+  ctx.beginPath();ctx.arc(x-r*0.3,y-r*0.3,r*0.35,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
+}
+/* 박쥐떼(흡혈 낫 스킬2 · 토글): 가장 가까운 몬스터를 표적으로 삼아 표적 주변 75px에 0.5초마다 10 피해. 오브젝트가 아닌 효과로 처리 */
+const BAT_R=75,BAT_DMG=10,BAT_TICK=0.5,BAT_RANGE=250; /* 표적 탐색 거리 (안전구역 원거리 사냥 방지) */
+function toggleBats(){
+ ensureAudio();sfx("skill");
+ if(S.bats){S.bats=null;toast("박쥐떼 OFF");return}
+ S.bats={tgt:null,tick:0};
+ toast("🦇 박쥐떼 ON · 가장 가까운 몬스터를 추적해요");
+}
+function updBats(dt){
+ const b=S.bats;if(!b)return;
+ if(data.weapon!=="vscythe"||data.hp<=0||S.loc==="plaza"){S.bats=null;return}
+ /* 표적: 나에게 어그로가 걸린 몬스터(보스 포함)만. 어그로가 풀리거나 너무 멀어지면 해제 */
+ const okT=m=>m.alive&&(S.loc!=="field"||m.aggro||m.type==="boss");
+ if(b.tgt&&(!okT(b.tgt)||Math.hypot(b.tgt.x-S.px,b.tgt.y-S.py)>BAT_RANGE*1.3))b.tgt=null;
+ if(!b.tgt){
+  let bd=BAT_RANGE;
+  for(const m of allTargets()){if(!okT(m))continue;const d=Math.hypot(m.x-S.px,m.y-S.py);if(d<bd){bd=d;b.tgt=m}}
+  b.tick=0;
+ }
+ if(!b.tgt||inSafe())return;
+ /* 안전구역이 켜져 있을 땐 안전구역 가장자리에 걸치는 표적은 공격하지 않음 */
+ if(S.loc==="field"&&!safeOff()&&Math.hypot(b.tgt.x-SAFE.x,b.tgt.y-SAFE.y)<SAFE.r+BAT_R)return;
+ b.tick+=dt;
+ if(b.tick<BAT_TICK)return;
+ b.tick-=BAT_TICK;
+ const cx=b.tgt.x,cy=b.tgt.y;
+ for(const m of allTargets()){
+  if(!m.alive||Math.hypot(m.x-cx,m.y-cy)>BAT_R)continue;
+  const kx=m.kx||0,ky=m.ky||0;hitMon(m,BAT_DMG,false);m.kx=kx;m.ky=ky; /* 넉백 없음 */
+ }
+}
+function drawBats(){
+ const b=S.bats;if(!b||!b.tgt||!b.tgt.alive)return;
+ const cx=b.tgt.x,cy=b.tgt.y,t=S.time;
+ ctx.save();
+ const g=ctx.createRadialGradient(cx,cy,5,cx,cy,BAT_R);
+ g.addColorStop(0,"rgba(90,30,110,0.28)");g.addColorStop(1,"rgba(40,10,60,0.06)");
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,BAT_R,0,Math.PI*2);ctx.fill();
+ ctx.globalAlpha=0.5;ctx.strokeStyle="#a784c9";ctx.lineWidth=1.5;ctx.setLineDash([5,7]);ctx.lineDashOffset=-t*20;
+ ctx.beginPath();ctx.arc(cx,cy,BAT_R,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+ ctx.globalAlpha=0.95;
+ for(let i=0;i<18;i++){
+  const a=t*(2.2+(i%3)*0.5)*(i%2?1:-1)+i*Math.PI*2/18,r=18+(i%5)*11+5*Math.sin(t*5+i);
+  const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*0.8,w=3+3*Math.sin(t*22+i*1.7);
+  ctx.strokeStyle="#2a1840";ctx.fillStyle="#3a2650";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x-7,y-w);ctx.quadraticCurveTo(x-3,y+2,x,y);ctx.quadraticCurveTo(x+3,y+2,x+7,y-w);ctx.stroke();
+  ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ff5a6a";ctx.fillRect(x-1,y-1,1,1);ctx.fillRect(x+1,y-1,1,1);
+ }
+ ctx.restore();
+}
+const skName=n=>{const k=SWORD_SK[data.weapon]||SWORD_SK.wood;if(n===2&&data.weapon==="vscythe"&&S.bats)return"박쥐떼\nON";if(n===2&&data.weapon==="enchant"&&S.refl)return"반사\nON";return n===1?k.n1:k.n2};
+const SWORD_RGB={wood:"255,255,255",iron:"205,214,232",flame:"255,140,60",long:"240,220,150",scythe:"150,155,165",vscythe:"190,70,85",enchant:"190,160,255",moon:"150,200,255",void:"190,120,255"};
+const SWORD_HIT={wood:"#ffffff",iron:"#cfd6e6",flame:"#ff8a3d",long:"#f0dc96",scythe:"#9aa0ac",vscythe:"#b94658",enchant:"#c6a7ff",moon:"#9fd0ff",void:"#c08aff"};
 const swordRgb=()=>SWORD_RGB[data.weapon]||"255,255,255";
 function igniteMon(m,atk){if(m.alive)m.burn={t:3,tick:0.5,dmg:Math.max(1,Math.round(atk*0.4))}}
 function slowMon(m){if(m.alive&&m.type!=="boss")m.slowT=2.5}
@@ -2392,7 +2502,16 @@ function aimAng(){const t=nearestTarget(260);return t?Math.atan2(t.y-S.py,t.x-S.
 function swordSkill1(){
  const w=data.weapon,atk=atkNow();
  const ring=(r,col)=>{S.ring={x:S.px,y:S.py,t:0,max:r,col}};
+ if(w==="vscythe"&&(S.dash||S.roll))return;
  S.cd1=8;ensureAudio();sfx("skill");
+ if(w==="vscythe"){ /* 피의 질주: 돌진하며 범위 내 몹을 타격, 준 피해의 20% 흡혈 */
+  S.cd1=7;
+  let dx=S.vx,dy=S.vy;const l=Math.hypot(dx,dy);
+  if(l>20){dx/=l;dy/=l}else{const t=nearestTarget(260);if(t){const a=Math.atan2(t.y-S.py,t.x-S.px);dx=Math.cos(a);dy=Math.sin(a)}else{dx=S.face;dy=0}}
+  S.dash={t:0.26,vx:dx*900,vy:dy*900,hit:new Set(),kind:"rush"};
+  S.invuln=Math.max(S.invuln,0.3);S.afterAcc=0;
+  data.skillsUsed++;track("skill");save();return;
+ }
  if(w==="iron"){
   const a=aimAng();S.cd1=7;
   S.fx.push({kind:"arc",x:S.px,y:S.py,ang:a,len:105,span:1.1,t:0.3,max:0.3,col:"205,214,232"});
@@ -2413,6 +2532,15 @@ function swordSkill1(){
    const dx=m.x-S.px,dy=m.y-S.py,d=Math.hypot(dx,dy);
    if(d<190+m.r){let da=Math.abs(Math.atan2(dy,dx)-a);if(da>Math.PI)da=Math.PI*2-da;
     if(da<0.9){hitMon(m,Math.round(atk*4),false);m.kx*=1.4;m.ky*=1.4}}
+  }
+ }else if(w==="scythe"||w==="vscythe"){
+  const a=aimAng();S.cd1=7;
+  S.fx.push({kind:"arc",x:S.px,y:S.py,ang:a,len:150,span:2.6,t:0.16,max:0.16,col:w==="vscythe"?"170,60,75":"150,155,165"});
+  for(const m of allTargets()){
+   if(!m.alive)continue;
+   const dx=m.x-S.px,dy=m.y-S.py,d=Math.hypot(dx,dy);
+   if(d<150+m.r){let da=Math.abs(Math.atan2(dy,dx)-a);if(da>Math.PI)da=Math.PI*2-da;
+    if(da<1.3){hitMon(m,Math.round(atk*4),false);m.kx*=1.3;m.ky*=1.3}}
   }
  }else if(w==="moon"){
   const a=aimAng(),L=240,ca=Math.cos(a),sa=Math.sin(a);
@@ -2457,6 +2585,14 @@ function useSkill2(){
  if(S.cd2>0||S.dash||stunned())return;
  if(judgeOn()){startChain();return}
  if(data.weapon==="enchant"){S.refl=!S.refl;ensureAudio();sfx("skill");toast(S.refl?"자기파괴적 원소 ON · 받는 피해 1%, 원래 피해(100배) 반사":"자기파괴적 원소 OFF");return}
+ if(data.weapon==="vscythe"){toggleBats();return}
+ if(data.weapon==="scythe"||data.weapon==="vscythe"){
+  S.cd2=6;ensureAudio();sfx("skill");
+  S.fx.push({kind:"arc",x:S.px,y:S.py,ang:0,len:125,span:Math.PI*2,t:0.2,max:0.2,col:data.weapon==="vscythe"?"170,60,75":"150,155,165"});
+  const atk=atkNow();
+  for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<125+m.r)hitMon(m,Math.round(atk*3.2),false)}
+  data.skillsUsed++;track("skill");save();return;
+ }
  S.cd2=6;ensureAudio();sfx("skill");
  let dx=S.vx,dy=S.vy;const l=Math.hypot(dx,dy);
  if(l>20){dx/=l;dy/=l}else{dx=S.face;dy=0}
@@ -2481,7 +2617,8 @@ const STATUS={
  slow:{icon:"❄️",name:"둔화",dur:3,desc:"이동 속도 -40%",col:"#8fd3ff"},
  burn:{icon:"🔥",name:"화상",dur:4,desc:"지속 피해",col:"#ff8a3d"},
  poison:{icon:"☠️",name:"중독",dur:5,desc:"지속 피해 · 자동 회복 불가",col:"#8ccf6a"},
- stun:{icon:"💫",name:"기절",dur:1,desc:"1초간 행동 불가",col:"#ffe08a"}
+ stun:{icon:"💫",name:"기절",dur:1,desc:"1초간 행동 불가",col:"#ffe08a"},
+ disease:{icon:"🤢",name:"질병",dur:60,desc:"1분간 공격력 -50% · 화면이 초록빛 (박쥐에게 맞으면 걸림)",col:"#8ccf6a"}
 };
 /* 초원 · 사막 · 얼음 동굴 · 화산 · 늪지 · 공허의 균열 */
 const STAGE_STATUS=[null,"weak","slow","burn","poison","stun"];
@@ -2511,6 +2648,7 @@ function hurtFrom(m,n,stat){S.hurtSrc=m;try{hurt(n,stat)}finally{S.hurtSrc=null}
 function hurt(n,stat){
  if(S.invuln>0||data.hp<=0||inSafe()||S.god||S.chainSeq)return;
  applyStatus(stat);
+ if(S.hurtSrc&&S.hurtSrc.type==="bat")applyStatus("disease"); /* 박쥐에게 한 대라도 맞으면 질병 */
  if(judgeOn())n=Math.max(1,Math.ceil(n*0.1)); /* 빛의 결계: 받는 피해 90% 감소 */
  if(data.weapon==="enchant"&&S.overd)n=Math.round(n*1.2);
  if(data.weapon==="enchant"&&S.refl){const raw=n;n=Math.max(1,Math.round(n*0.01));const src=S.hurtSrc;if(src&&src.alive)dotHit(src,Math.max(1,raw),"#c6a7ff")}
@@ -2582,7 +2720,7 @@ function updTele(dt){
 function updateMon(m,dt){
  if(m.pvpId||m.raidId)return;
  if(!m.alive){
-  if(m.respawn&&S.time>=m.respawn){m.alive=true;m.hp=m.max;m.x=m.hx;m.y=m.hy;m.respawn=0;m.aggro=false;m.burn=null;m.burns=null;m.iceSlowT=0;m.slowT=0;m.freezeT=0;m.weakT=0}
+  if(m.respawn&&S.time>=m.respawn){m.alive=true;m.hp=m.max;m.x=m.hx;m.y=m.hy;m.respawn=0;m.aggro=false;m.burn=null;m.burns=null;m.iceSlowT=0;m.slowT=0;m.freezeT=0;m.weakT=0;rollBat(m)}
   return;
  }
  m.hit=Math.max(0,m.hit-dt);
@@ -2613,6 +2751,10 @@ function updateMon(m,dt){
    m.shootCd=2.2;
    S.projs.push({x:m.x,y:m.y,vx:dx/d*190,vy:dy/d*190,t:3.5,dmg:Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),stat:m.stat,src:m});
   }
+ }else if(m.type==="bat"&&m.aggro&&!inSafe()){
+  const w=Math.sin(S.time*7+m.hx)*0.9,vx=dx/d,vy=dy/d;
+  m.x+=(vx-vy*w)*T.speed*dt;m.y+=(vy+vx*w)*T.speed*dt;
+  if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
  }else if(m.aggro&&!inSafe()){
   m.x+=dx/d*T.speed*dt;m.y+=dy/d*T.speed*dt;
   if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
@@ -2650,6 +2792,8 @@ function update(dt){
  if(S.chain||S.chainFx.length)S.invuln=Math.max(S.invuln,0.1);
  updPassives(dt);
  updSanct(dt);
+ updBats(dt);
+ updPet(dt);
  updStatus(dt);
  updHpRegen(dt);
  for(const sf of S.slashFx)sf.t-=dt;S.slashFx=S.slashFx.filter(sf=>sf.t>0);
@@ -2684,8 +2828,15 @@ function update(dt){
  }else if(S.dash){
   S.dash.t-=dt;
   S.px+=S.dash.vx*dt;S.py+=S.dash.vy*dt;
+  if(S.dash.kind==="rush"){S.afterAcc+=dt;if(S.afterAcc>0.03){S.afterAcc=0;S.after.push({x:S.px,y:S.py,face:S.face,t:0.25})}burst(S.px,S.py,"#b94658",1)}
   for(const m of allTargets()){
-   if(m.alive&&!inSafe()&&!S.dash.hit.has(m)&&Math.hypot(m.x-S.px,m.y-S.py)<m.r+26){
+   if(m.alive&&!inSafe()&&!S.dash.hit.has(m)&&Math.hypot(m.x-S.px,m.y-S.py)<m.r+(S.dash.kind==="rush"?40:26)){
+    if(S.dash.kind==="rush"){ /* 피의 질주: 준 피해의 20% 흡혈 (패시브 10%는 중복 적용하지 않음) */
+     S.dash.hit.add(m);const rd=Math.round(atkNow()*3.5);
+     S.rushLeech=true;try{hitMon(m,rd,false)}finally{S.rushLeech=false}
+     if(data.hp>0&&data.hp<100){const hl=Math.max(1,Math.round(rd*0.2));data.hp=Math.min(100,data.hp+hl);addText(S.px,S.py-40,"+"+hl,"#ff7a8a")}
+     continue;
+    }
     S.dash.hit.add(m);hitMon(m,judgeOn()?judgeDmg(m):Math.round(atkNow()*2.5),false);if(!judgeOn()&&data.weapon==="flame")igniteMon(m,atkNow());
    }
   }
@@ -2841,6 +2992,7 @@ function draw(){
   const pf=S.roll?2:seqRun?Math.floor(S.time*12)%4:(moving?Math.floor(S.time*8)%4:4);
   drawSprite(SPR.player,pf,S.flash>0,S.px,S.py,S.face<0?-1:1,false);
  }
+ drawPet();drawOrbs();
  drawHpBar(S.px,S.py-59,data.hp,PV.on?PV.shield:0);
  {const act=Object.keys(STATUS).filter(k=>S.status[k]>0);
   if(act.length){ctx.fillStyle="#ffffff";ctx.font="12px system-ui";ctx.textAlign="center";act.forEach((k,i)=>ctx.fillText(STATUS[k].icon,S.px+(i-(act.length-1)/2)*16,S.py-66));ctx.textAlign="left"}}
@@ -2889,6 +3041,7 @@ function draw(){
   }
  }
  drawPulls();
+ drawBats();
  drawPassives();
  for(const sf of S.slashFx){
   const k=1-sf.t/(sf.max||0.35),cx=sf.x,cy=sf.y;
@@ -2918,6 +3071,13 @@ function draw(){
  }
  ctx.globalAlpha=1;ctx.textAlign="left";
  ctx.restore();
+ if(S.status.disease>0&&S.loc!=="plaza"){ /* 질병: 화면 전체가 초록빛 */
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);
+  const cw=ctx.canvas.width,ch=ctx.canvas.height;
+  ctx.globalCompositeOperation="multiply";ctx.fillStyle="rgb(140,230,140)";ctx.fillRect(0,0,cw,ch);
+  ctx.globalCompositeOperation="source-over";ctx.globalAlpha=0.12+0.05*Math.sin(S.time*3);ctx.fillStyle="rgb(40,190,70)";ctx.fillRect(0,0,cw,ch);
+  ctx.restore();
+ }
 }
 
 /* ── HUD ── */
@@ -3001,9 +3161,15 @@ function renderView(){
    return row(`${icon} ${a.title}`,`${a.desc} · 보상 ${a.reward}G`,{action:"claima:"+a.id,label:claimed?"받음":"받기"},claimed||!ok);
   }).join("");
  }else if(tab==="craft"){
-  h=row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G"+(data.owned.includes("iron")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50)
+  h=`<h3 style="margin:0 0 8px">🔥 제련</h3><p class="sg-note">보유 철 광석 ${data.mats.iron}개 · 철 주괴 ${data.mats.ingot||0}개</p>`
+    +row("🔨 제련 시작",`${smeltCostTxt(SMELTS.iron)}를 내고 시작 · ${SMELTS.iron.time}초 안에 버튼을 미친 듯이 연타해 게이지를 채우면 철 주괴 1개 · 실패하면 재료가 타버려요 · 광장에서만 가능`,{action:"smelt:start",label:"제련 시작"},!inPlazaNow()||!smeltCan(SMELTS.iron))
+    +row("⚒ 강철 제련",`${smeltCostTxt(SMELTS.steel)}를 내고 시작 · 철 주괴 제련보다 훨씬 빡센 연타(초당 약 10번 이상) · 성공하면 강철 1개 · 실패하면 철 주괴가 타버려요 · 광장에서만 가능`,{action:"smelt:steel",label:"강철 제련"},!inPlazaNow()||!smeltCan(SMELTS.steel))
+    +`<h3 style="margin:18px 0 8px">검 조합</h3>`
+    +row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G"+(data.owned.includes("iron")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50)
    +row("화염 검","철 검 보유 + 화염 조각 5개 + 핵 3개 + 100G"+(data.owned.includes("flame")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:flame",label:"조합"},!data.owned.includes("iron")||data.mats.flame<5||data.mats.core<3||data.gold<100)
    +row("장검","철 검 보유 + 철 광석 15개 + 핵 6개 + 200G"+(data.owned.includes("long")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:long",label:"조합"},!data.owned.includes("iron")||data.mats.iron<15||data.mats.core<6||data.gold<200)
+   +row("낫","철 검 보유 + 철 광석 120개 + 핵 50개 + 1500G"+(data.owned.includes("scythe")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:scythe",label:"조합"},!data.owned.includes("iron")||data.mats.iron<120||data.mats.core<50||data.gold<1500)
+    +row("흡혈 낫",`낫 1자루(소모) + 강철 30개 + 혈액 10개`+(data.owned.includes("vscythe")?" · 이미 보유 중 → 중복 +1 (강화 재료)":"")+` · 보유 낫 ${(data.stock&&data.stock.scythe&&stockTotal(data.stock.scythe))||0}자루`,{action:"craft:vscythe",label:"조합"},!(data.stock&&data.stock.scythe&&stockTotal(data.stock.scythe)>0)||(data.mats.steel||0)<30||(data.mats.blood||0)<10)
     +row("월광 검","화염 검 +5 1자루(소모) + 달빛 가루 50개"+(data.owned.includes("moon")?" · 이미 보유 중 → 중복 +1 (강화 재료)":"")+` · 보유 +5 화염 검 ${(data.stock&&data.stock.flame&&data.stock.flame[5])||0}자루`,{action:"craft:moon",label:"조합"},!(data.stock&&data.stock.flame&&data.stock.flame[5]>0)||data.mats.moon<50)
     +`<h3 style="margin:18px 0 8px">에센스 인챈트</h3><p class="sg-note">인챈트 소드(울트라 · 레이드 0.1% 드랍)를 장착하고 보유한 에센스를 여러 개 동시에 장착(조합)할 수 있어요. 에센스는 월드 레이드 토벌 시 1% 확률로 획득해요.</p>`
     +row("현재 속성",Object.keys(ESSENCES).filter(ES).map(k=>ESSENCES[k].name).join(" + ")||"에센스 미장착",{action:"essence:none",label:"전부 해제"},!Object.keys(ESSENCES).some(ES))
@@ -3013,9 +3179,9 @@ function renderView(){
  }else if(tab==="gacha"){
   h=`<p>뽑기권 ${data.tickets||0}장</p>`+row("검 랜덤 뽑기","나무 75% · 철 20% · 화염 4% · 월광 0.75% · 공허 0.25% · 천장 없음",{action:"gacha",label:"뽑기"},(data.tickets||0)<1);
  }else if(tab==="lost"){
-  h=row("철 광석",`보유 ${data.mats.iron}개`)+row("몬스터 핵",`보유 ${data.mats.core}개`)+row("화염 조각",`보유 ${data.mats.flame}개`)+row("달빛 가루",`보유 ${data.mats.moon}개`)
+  h=row("철 광석",`보유 ${data.mats.iron}개`)+row("몬스터 핵",`보유 ${data.mats.core}개`)+row("화염 조각",`보유 ${data.mats.flame}개`)+row("달빛 가루",`보유 ${data.mats.moon}개`)+row("혈액",`보유 ${data.mats.blood||0}개`)+row("철 주괴",`보유 ${data.mats.ingot||0}개 · 대장간에서 철 광석을 제련해 만들어요`)+row("강철",`보유 ${data.mats.steel||0}개 · 대장간에서 철 주괴 10개를 제련해 만들어요`)
     +Object.entries(ESSENCES).map(([ek,e])=>row(e.icon+" "+e.name,`보유 ${data.essences[ek]||0}개 · ${e.desc}`)).join("")
-   +`<h3 style="margin:16px 0 8px">드롭 확률 (모든 몬스터 공통)</h3><p class="sg-note">철 광석 20% · 몬스터 핵 8% · 화염 조각 4% · 달빛 가루 1%. 각 아이템은 독립적으로 판정됩니다.</p>`
+   +`<h3 style="margin:16px 0 8px">드롭 확률 (모든 몬스터 공통)</h3><p class="sg-note">철 광석 20% · 몬스터 핵 8% · 화염 조각 4% · 달빛 가루 1%. 각 아이템은 독립적으로 판정됩니다. 혈액은 박쥐를 처치했을 때만 50% 확률로 나와요.</p>`
    +`<h3 style="margin:16px 0 8px">최근 유실물 획득 내역</h3>`
    +(data.lootLog.length?data.lootLog.map(x=>`<div class="sg-row"><div><b>${esc(x.drops)}</b><div class="sg-note">${x.time} · ${x.monster} 처치</div></div></div>`).join(""):`<p class="sg-note">아직 획득 내역이 없습니다.</p>`);
  }else if(tab==="ranking"){
@@ -3034,6 +3200,88 @@ function setTab(t){
 }
 
 /* ── 행동 ── */
+/* ── 제련 연타 미니게임: 탭마다 게이지가 차고, 게이지는 계속 줄어요. 제한 시간 안에 100% 채우면 성공 ── */
+const SMELTS={
+ iron:{mat:"iron",cost:10,gold:20,out:"ingot",outName:"철 주괴",failMsg:"철 광석이 타버렸어요",title:"🔥 제련 중!",tap:5,decay:28,time:8},
+ steel:{mat:"ingot",cost:10,gold:0,out:"steel",outName:"강철",failMsg:"철 주괴가 타버렸어요",title:"⚒ 강철 제련 중!",tap:4.5,decay:32,time:8}
+};
+const smeltCostTxt=C=>(C.mat==="iron"?"철 광석 ":"철 주괴 ")+C.cost+"개"+(C.gold?" + "+C.gold+"G":"");
+const smeltCan=C=>(data.mats[C.mat]||0)>=C.cost&&data.gold>=C.gold;
+let smeltRun=null;
+const inPlazaNow=()=>(S.running?S.loc:data.loc)==="plaza"; /* 제련은 광장에서만 */
+window.addEventListener("keydown",e=>{
+ if(!smeltRun)return;
+ if(e.key===" "||e.key==="Enter"){
+  e.preventDefault();e.stopImmediatePropagation();
+  if(e.repeat)return;
+  if(!smeltRun.done)smeltRun.tap();
+ }
+},true);
+function startSmelt(kind){
+ const C=SMELTS[kind||"iron"];
+ if(smeltRun||!C)return;
+ if(!inPlazaNow()){toast("제련은 광장의 대장간에서만 할 수 있어요.");return}
+ if(!smeltCan(C)){toast("재료나 골드가 부족해요.");return}
+ data.mats[C.mat]-=C.cost;data.gold-=C.gold;save();hud();renderView();
+ const el=document.createElement("div");
+ el.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px;user-select:none;-webkit-user-select:none;touch-action:manipulation";
+ el.innerHTML=`<div id="sgSmCard" style="width:min(420px,100%);background:#121722;border:1px solid #333b50;border-radius:18px;padding:20px;text-align:center">
+  <h2 id="sgSmTitle" style="margin:0 0 6px">${C.title}</h2>
+  <div id="sgSmMsg" class="sg-note">버튼을 눌러 시작하면 ${C.time}초 타이머가 돌아가요. (스페이스/엔터도 돼요)</div>
+  <div style="height:24px;background:#0d111a;border:1px solid #333b50;border-radius:12px;overflow:hidden;margin:16px 0 8px"><div id="sgSmG" style="height:100%;width:0%;background:linear-gradient(90deg,#ff8a3d,#ffd166)"></div></div>
+  <div id="sgSmT" style="font-size:20px;font-weight:800;margin-bottom:12px">${C.time.toFixed(1)}초</div>
+  <button id="sgSmBtn" style="width:100%;height:150px;font-size:28px;font-weight:900;border-radius:16px;touch-action:manipulation">🔨 두드려!</button>
+  <div id="sgSmFoot" style="margin-top:12px"><button id="sgSmCancel" type="button">취소 (재료 환불)</button></div>
+ </div>`;
+ (document.fullscreenElement||document.webkitFullscreenElement||document.body).appendChild(el); /* 전체화면 중에는 그 요소 안에 붙여야 보여요 */
+ const q=id=>el.querySelector(id);
+ const gEl=q("#sgSmG"),tEl=q("#sgSmT"),mEl=q("#sgSmMsg"),btn=q("#sgSmBtn"),cancel=q("#sgSmCancel");
+ const run=smeltRun={g:0,t:C.time,started:false,done:false,last:0,raf:0,tap:null};
+ const paint=()=>{gEl.style.width=run.g+"%";tEl.textContent=Math.max(0,run.t).toFixed(1)+"초"};
+ const close=()=>{cancelAnimationFrame(run.raf);el.remove();smeltRun=null};
+ const refund=()=>{data.mats[C.mat]+=C.cost;data.gold+=C.gold;save();hud();renderView()};
+ const loop=()=>{
+  if(run.done)return;
+  const n=performance.now(),dt=Math.min(0.1,(n-run.last)/1000);run.last=n;
+  run.g=Math.max(0,run.g-C.decay*dt);run.t-=dt;
+  if(S.running&&S.loc!=="plaza"){ /* 도중에 광장을 벗어나면 취소하고 재료 환불 */
+   refund();close();
+   toast("광장을 벗어나 제련이 취소됐어요. 재료를 돌려받았어요.");return;
+  }
+  paint();
+  if(run.t<=0){finish(false);return}
+  run.raf=requestAnimationFrame(loop);
+ };
+ const finish=win=>{
+  run.done=true;cancelAnimationFrame(run.raf);
+  if(win){data.mats[C.out]=(data.mats[C.out]||0)+1;try{sfx("up")}catch{}}else{try{sfx("hurt")}catch{}}
+  save();hud();renderView();
+  q("#sgSmTitle").textContent=win?"🔥 제련 성공! "+C.outName+" +1":"💀 제련 실패… "+C.failMsg;
+  mEl.textContent=win?"보유 "+C.outName+" "+(data.mats[C.out]||0)+"개":"게이지 "+Math.floor(run.g)+"% · 다시 도전해 보세요";
+  btn.style.display="none";
+  const foot=q("#sgSmFoot");
+  foot.innerHTML=`<button id="sgSmOk" disabled>확인</button> <button id="sgSmAgain" class="primary" disabled>한 번 더</button>`;
+  const ok=q("#sgSmOk"),again=q("#sgSmAgain");
+  ok.onclick=close;
+  again.onclick=()=>{close();startSmelt(kind)};
+  setTimeout(()=>{ok.disabled=false;again.disabled=!smeltCan(C)},900); /* 연타하던 손가락이 바로 눌러버리지 않게 잠깐 잠금 */
+ };
+ run.tap=()=>{
+  if(run.done)return;
+  if(!run.started){run.started=true;run.last=performance.now();cancel.style.display="none";mEl.textContent="연타 연타 연타!!";run.raf=requestAnimationFrame(loop)}
+  run.g=Math.min(100,run.g+C.tap);
+  try{sfx("hit")}catch{}
+  paint();
+  if(run.g>=100)finish(true);
+ };
+ btn.addEventListener("pointerdown",e=>{e.preventDefault();run.tap()});
+ btn.addEventListener("contextmenu",e=>e.preventDefault());
+ cancel.onclick=()=>{
+  if(run.started)return;
+  refund();close();
+  toast("제련을 취소했어요. 재료를 돌려받았어요.");
+ };
+}
 function action(a){
  syncStockOf(data);
  const [type,k]=a.split(":");
@@ -3078,6 +3326,18 @@ function action(a){
   if(k==="iron"&&data.mats.iron>=5&&data.mats.core>=2&&data.gold>=50){data.mats.iron-=5;data.mats.core-=2;data.gold-=50;if(data.owned.includes(k)){giveCopy(k);toast("철 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("철 검 조합 성공!")}}
   else if(k==="flame"&&data.owned.includes("iron")&&data.mats.flame>=5&&data.mats.core>=3&&data.gold>=100){data.mats.flame-=5;data.mats.core-=3;data.gold-=100;if(data.owned.includes(k)){giveCopy(k);toast("🔥 화염 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("🔥 화염 검 조합 성공!")}}
   else if(k==="long"&&data.owned.includes("iron")&&data.mats.iron>=15&&data.mats.core>=6&&data.gold>=200){data.mats.iron-=15;data.mats.core-=6;data.gold-=200;if(data.owned.includes(k)){giveCopy(k);toast("장검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("장검 조합 성공!")}}
+  else if(k==="scythe"&&data.owned.includes("iron")&&data.mats.iron>=120&&data.mats.core>=50&&data.gold>=1500){data.mats.iron-=120;data.mats.core-=50;data.gold-=1500;if(data.owned.includes(k)){giveCopy(k);toast("낫 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("낫 조합 성공!")}}
+  else if(k==="vscythe"&&data.stock&&data.stock.scythe&&stockTotal(data.stock.scythe)>0&&(data.mats.steel||0)>=30&&(data.mats.blood||0)>=10){
+   const st=data.stock.scythe,lo=Math.min(...Object.keys(st).filter(l=>st[l]>0).map(Number));
+   st[lo]--;if(st[lo]<=0)delete st[lo];
+   data.mats.steel-=30;data.mats.blood-=10;
+   if(stockTotal(st)<1){ /* 마지막 낫을 재료로 쓰면 보유 목록에서 제거 */
+    data.owned=data.owned.filter(x=>x!=="scythe");delete data.stock.scythe;delete data.enhance.scythe;delete data.duplicates.scythe;
+    if(data.weapon==="scythe")data.weapon="wood";
+   }else resyncK("scythe");
+   const had=data.owned.includes("vscythe");giveCopy("vscythe");
+   toast(had?"🩸 흡혈 낫 조합 · 중복 획득 · 강화 재료 +1":"🩸 흡혈 낫 조합 성공! (낫 1자루 소모)");
+  }
   else if(k==="moon"&&data.stock&&data.stock.flame&&data.stock.flame[5]>0&&data.mats.moon>=50){
    const fs=data.stock.flame;fs[5]--;if(fs[5]<=0)delete fs[5];
    data.mats.moon-=50;
@@ -3090,6 +3350,7 @@ function action(a){
   }
   else toast("재료나 골드가 부족해요.");
  }
+ else if(type==="smelt"){startSmelt(k==="steel"?"steel":"iron")}
  else if(type==="gacha"){
   if(data.tickets<1)return;
   data.tickets--;
