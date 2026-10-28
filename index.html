@@ -960,7 +960,7 @@ if(db){
     <button data-sgtab="inventory" class="active">검 보관함</button><button data-sgtab="shop">상점</button><button data-sgtab="quest">퀘스트</button><button data-sgtab="achievement">업적</button><button data-sgtab="craft">검 조합</button><button data-sgtab="enhance">검 강화</button><button data-sgtab="gacha">뽑기</button><button data-sgtab="lost">유실물</button><button data-sgtab="ranking">랭킹</button>
   </div>
   <div id="sgView" class="sg-view"></div>
-  <p class="sg-note">이동: 방향키/WASD · 공격: 스페이스 · 스킬1: 1키(Lv2) · 스킬2: 2키(Lv4) · 물약: Q · 대쉬: Shift. 공격은 가까운 몬스터를 자동 조준하지만 직접 눌러야 합니다. 레벨, 골드, 검, 재료는 이 기기에 저장되며, 보스를 처치하면 랭킹에 기록됩니다.</p>
+  <p class="sg-note">이동: 방향키/WASD · 공격: 스페이스 · 안전구역(맵 중앙 초록 원)에서는 몬스터도 나도 공격할 수 없습니다. 스킬1: 1키(Lv2) · 스킬2: 2키(Lv4) · 물약: Q · 대쉬: Shift. 공격은 가까운 몬스터를 자동 조준하지만 직접 눌러야 합니다. 레벨, 골드, 검, 재료는 이 기기에 저장되며, 보스를 처치하면 랭킹에 기록됩니다.</p>
 </section></div>
 <script>
 (()=>{
@@ -984,6 +984,11 @@ const TYPES={
  boss:{r:18,speed:60,dmg:12,hp:0,detect:260}
 };
 const SPRITE_OF={normal:"slime",fast:"imp",ranged:"mage",boss:"golem"};
+/* 안전구역: 이 안에서는 플레이어도 공격할 수 없고, 몬스터도 들어오거나 공격할 수 없음 */
+const SAFE={x:400,y:300,r:70};
+const inSafe=(x,y)=>Math.hypot((x===undefined?S.px:x)-SAFE.x,(y===undefined?S.py:y)-SAFE.y)<SAFE.r;
+let safeMsgAt=0;
+function safeMsg(){const n=performance.now();if(n-safeMsgAt>1200){safeMsgAt=n;toast("안전구역에서는 공격할 수 없어요.")}}
 const homes=[[160,150],[630,150],[160,440],[630,440],[400,110],[400,490],[100,300],[700,300]];
 const QUEST_POOL=[
  {id:"kill10",title:"몬스터 10마리 처치",type:"kill",target:10,reward:60},
@@ -1343,6 +1348,7 @@ function killMon(m){
 }
 function attack(){
  if(!S.running||data.hp<=0||S.time<S.attackReady)return;
+ if(inSafe()){safeMsg();return}
  S.attackReady=S.time+0.36;ensureAudio();
  const t=nearestTarget(55);
  const ang=t?Math.atan2(t.y-S.py,t.x-S.px):(S.face>0?0:Math.PI);
@@ -1352,6 +1358,7 @@ function attack(){
 }
 function useSkill1(){
  if(!S.running||data.hp<=0)return;
+ if(inSafe()){safeMsg();return}
  if(data.level<2){toast("레벨 2에 해금됩니다.");return}
  if(S.cd1>0)return;
  S.cd1=8;ensureAudio();sfx("skill");
@@ -1361,6 +1368,7 @@ function useSkill1(){
 }
 function useSkill2(){
  if(!S.running||data.hp<=0)return;
+ if(inSafe()){safeMsg();return}
  if(data.level<4){toast("레벨 4에 해금됩니다.");return}
  if(S.cd2>0||S.dash)return;
  S.cd2=6;ensureAudio();sfx("skill");
@@ -1380,7 +1388,7 @@ function potion(){
  track("potion");save();
 }
 function hurt(n){
- if(S.invuln>0||data.hp<=0)return;
+ if(S.invuln>0||data.hp<=0||inSafe())return;
  data.hp-=n;S.invuln=0.6;S.flash=0.2;S.shake=0.3;
  addText(S.px,S.py-40,"-"+n,"#ff657a");sfx("hurt");
  if(data.hp<=0){
@@ -1401,7 +1409,7 @@ function updateMon(m,dt){
  m.x+=m.kx*dt;m.y+=m.ky*dt;
  const decay=Math.pow(0.02,dt);m.kx*=decay;m.ky*=decay;
  const T=TYPES[m.type],dx=S.px-m.x,dy=S.py-m.y,d=Math.hypot(dx,dy)||1;
- if(m.type==="ranged"){
+ if(m.type==="ranged"&&!inSafe()){
   if(d<170){m.x-=dx/d*T.speed*dt;m.y-=dy/d*T.speed*dt}
   else if(d>230&&d<320){m.x+=dx/d*T.speed*dt;m.y+=dy/d*T.speed*dt}
   m.shootCd-=dt;
@@ -1409,13 +1417,14 @@ function updateMon(m,dt){
    m.shootCd=2.2;
    S.projs.push({x:m.x,y:m.y,vx:dx/d*190,vy:dy/d*190,t:3.5,dmg:T.dmg});
   }
- }else if(d<T.detect){
+ }else if(d<T.detect&&!inSafe()){
   m.x+=dx/d*T.speed*dt;m.y+=dy/d*T.speed*dt;
   if(d<m.r+PR+4)hurt(T.dmg);
  }else{
   m.x+=(m.hx-m.x)*Math.min(1,dt*2);m.y+=(m.hy-m.y)*Math.min(1,dt*2);
  }
  m.x=clamp(m.x,15,W-15);m.y=clamp(m.y,15,H-15);
+ {const sx=m.x-SAFE.x,sy=m.y-SAFE.y,sd=Math.hypot(sx,sy)||1,min=SAFE.r+m.r;if(sd<min){m.x=SAFE.x+sx/sd*min;m.y=SAFE.y+sy/sd*min}}
 }
 function update(dt){
  S.time+=dt;
@@ -1459,7 +1468,7 @@ function update(dt){
   S.dash.t-=dt;
   S.px+=S.dash.vx*dt;S.py+=S.dash.vy*dt;
   for(const m of allTargets()){
-   if(m.alive&&!S.dash.hit.has(m)&&Math.hypot(m.x-S.px,m.y-S.py)<m.r+26){
+   if(m.alive&&!inSafe()&&!S.dash.hit.has(m)&&Math.hypot(m.x-S.px,m.y-S.py)<m.r+26){
     S.dash.hit.add(m);hitMon(m,atkNow(),false);
    }
   }
@@ -1476,6 +1485,7 @@ function update(dt){
  updateRemotes(dt);
  for(const p of S.projs){
   p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
+  if(inSafe(p.x,p.y)){p.t=0;continue}
   if(Math.hypot(p.x-S.px,p.y-S.py)<PR+5){hurt(p.dmg);p.t=0}
  }
  S.projs=S.projs.filter(p=>p.t>0&&p.x>0&&p.x<W&&p.y>0&&p.y<H);
@@ -1520,6 +1530,12 @@ function draw(){
  if(S.shake>0)ctx.translate((Math.random()-0.5)*S.shake*14,(Math.random()-0.5)*S.shake*14);
  ctx.imageSmoothingEnabled=false;
  ctx.drawImage(BG[st.idx],0,0,W,H);
+ {const pulse=0.5+0.5*Math.sin(S.time*2);
+  ctx.fillStyle="rgba(110,231,183,"+(0.10+0.05*pulse)+")";
+  ctx.beginPath();ctx.arc(SAFE.x,SAFE.y,SAFE.r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="rgba(110,231,183,0.75)";ctx.lineWidth=2;ctx.setLineDash([8,6]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="rgba(110,231,183,0.95)";ctx.font="bold 12px system-ui";ctx.textAlign="center";
+  ctx.fillText("안전구역",SAFE.x,SAFE.y-SAFE.r-6);ctx.textAlign="left";}
  if(S.ring){
   const p=S.ring.t/0.35,e=1-Math.pow(1-p,3);
   ctx.globalAlpha=1-p;ctx.strokeStyle="#8b7cff";ctx.lineWidth=6*(1-p)+1;
@@ -1535,7 +1551,7 @@ function draw(){
   drawSprite(SPR.orb,0,false,p.x,p.y,1,true);
  }
  const tgt=nearestTarget(180);
- if(tgt){
+ if(tgt&&!inSafe()){
   ctx.strokeStyle="#a99cff88";ctx.setLineDash([5,5]);
   ctx.beginPath();ctx.moveTo(S.px,S.py);ctx.lineTo(tgt.x,tgt.y);ctx.stroke();
   ctx.setLineDash([]);
