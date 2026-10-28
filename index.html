@@ -778,13 +778,14 @@ async function loadAdminTable(){
 }
 /* 게임 저장 전용 편집기 (장비/재료/상태) */
 const GAME_WEAPONS={wood:"나무 검",iron:"철 검",flame:"화염 검",long:"장검",enchant:"인챈트 소드",moon:"월광 검",void:"공허 검",judge:"심판의 검(관리자)"};
+const GAME_ESS={fire:"🔥 화염 에센스",ice:"❄️ 빙결 에센스",lightning:"⚡ 번개 에센스",nature:"🌿 자연 에센스",holy:"✨ 신성 에센스",void:"🌌 공허 에센스"};
 const GAME_MATS={iron:"철 광석",core:"몬스터 핵",flame:"화염 조각",moon:"달빛 가루"};
 const GAME_NUMS=[["level","레벨"],["xp","XP"],["gold","골드"],["hp","HP"],["stage","현재 스테이지"],["maxStage","최대 해금 스테이지"],["tickets","뽑기권"],["potions","물약"],["kills","처치 수"],["bossKills","보스 처치"]];
 function normGame(d){
  d=(d&&typeof d==="object")?d:{};
  const z=o=>Object.fromEntries(Object.keys(o).map(k=>[k,0]));
  const n={level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{},maxStage:1,...d};
- n.duplicates={...z(GAME_WEAPONS),...(d.duplicates||{})};n.enhance={...z(GAME_WEAPONS),...(d.enhance||{})};n.mats={...z(GAME_MATS),...(d.mats||{})};
+ n.duplicates={...z(GAME_WEAPONS),...(d.duplicates||{})};n.enhance={...z(GAME_WEAPONS),...(d.enhance||{})};n.mats={...z(GAME_MATS),...(d.mats||{})};n.essences={...z(GAME_ESS),...(d.essences||{})};
  if(!Array.isArray(n.owned))n.owned=["wood"];
  if(!GAME_WEAPONS[n.weapon])n.weapon="wood";
  return n;
@@ -824,6 +825,7 @@ function gameCardHtml(r,i){
  <div class="field"><label>장착 중인 검</label><select data-g="weapon">${wsel}</select></div>
  <div class="field"><label>검 보관함 (검별 · 강화 단계별 보유 자루 수)</label><div class="small" style="margin-bottom:6px">모두 0이면 미보유예요. 같은 +n 검 2자루를 합치면 +(n+1) 1자루가 돼요. 장착·공격력은 가장 높은 강화 검 기준이에요.</div>${stockBox}</div>
  <div class="field"><label>재료 (유실물)</label><div ${grid}>${Object.entries(GAME_MATS).map(([k,n])=>numIn("data-g-mat",k,n,d.mats[k])).join("")}</div></div>
+ <div class="field"><label>에센스 (보유 개수 · 0이면 미보유)</label><div ${grid}>${Object.entries(GAME_ESS).map(([k,n])=>numIn("data-g-ess",k,n,d.essences[k])).join("")}</div></div>
  <div class="field"><label>상태</label><div ${grid}>${GAME_NUMS.map(([k,n])=>numIn("data-g-num",k,n,d[k])).join("")}</div></div>
  <div class="field"><label>심판의 검 하사 (관리자 전용 검)</label><div class="row"><select data-loan-days><option value="1">1시간</option><option value="24" selected>24시간</option><option value="168">7일</option><option value="0">무기한</option></select><button type="button" data-loan="give">하사</button><button type="button" class="danger" data-loan="revoke">회수</button></div><div class="small">현재: ${esc(loanInfo)}</div></div>
  <details style="margin:8px 0"><summary class="small" style="cursor:pointer">고급: 전체 JSON (유실물 내역 등)</summary><textarea data-gjson spellcheck="false" style="min-height:200px;font-family:ui-monospace,Consolas,monospace;font-size:12px;margin-top:8px">${esc(JSON.stringify(d,null,2))}</textarea></details>
@@ -893,6 +895,7 @@ async function saveGameRow(idx,card){
   return true;
  };
  if(!readNums("data-g-mat",k=>orig.mats[k],(k,v)=>next.mats[k]=v))return;
+ if(!readNums("data-g-ess",k=>orig.essences[k],(k,v)=>{next.essences[k]=v;if(v<1&&next.ess)delete next.ess[k]}))return;
  if(!readNums("data-g-num",k=>orig[k],(k,v)=>next[k]=v))return;
  next.level=Math.max(1,next.level);next.stage=Math.max(1,next.stage);next.hp=Math.max(1,Math.min(100,next.hp));
  if(!confirm((adminTableNames[row.user_id]||"회원")+" 님의 게임 데이터를 저장할까요?"))return;
@@ -1124,6 +1127,14 @@ if(db){
 #sibolGamePanel .sg-stage .sg-acts #sgSkill2{grid-column:2;grid-row:1}
 #sibolGamePanel .sg-stage .sg-acts #sgSkill3{grid-column:3;grid-row:1}
 #sibolGamePanel .sg-stage .sg-acts #sgSkill4{grid-column:4;grid-row:1}
+#sibolGamePanel .sg-stage .sg-acts #sgSkill5{display:none}
+#sibolGamePanel .sg-stage .sg-acts.ench{grid-template-columns:48px 48px 48px 60px 48px}
+#sibolGamePanel .sg-stage .sg-acts.ench #sgSkill5{display:block;grid-column:5;grid-row:1}
+#sibolGamePanel .sg-stage .sg-acts.ench #sgSkill2{grid-column:3}
+#sibolGamePanel .sg-stage .sg-acts.ench #sgSkill3{grid-column:4}
+#sibolGamePanel .sg-stage .sg-acts.ench #sgSkill4{grid-column:2}
+#sibolGamePanel .sg-stage .sg-acts.ench #sgSkill1{grid-column:3}
+#sibolGamePanel .sg-stage .sg-acts.ench #sgSkill2{grid-column:1}
 #sibolGamePanel .sg-stage .sg-acts #sgDash{grid-column:1;grid-row:2}
 #sibolGamePanel .sg-stage .sg-acts #sgPotion{grid-column:2;grid-row:2}
 #sibolGamePanel .sg-stage .sg-acts #sgAttack{grid-column:3 / 5;grid-row:2;font-size:13px;font-weight:800;background:rgba(139,124,255,.85);border-color:#b0a6ff;border-radius:16px}
@@ -1214,6 +1225,7 @@ if(db){
         <button id="sgSkill2" type="button" disabled>스킬 2</button>
         <button id="sgSkill3" type="button" disabled>스킬 3</button>
         <button id="sgSkill4" type="button" disabled>스킬 4</button>
+        <button id="sgSkill5" type="button" disabled>스킬 5</button>
         <button id="sgAttack" type="button" class="primary">⚔️
 공격</button>
         <button id="sgDash" type="button">💨
@@ -1245,9 +1257,9 @@ function setWorld(plaza){
  W=plaza?VW:VW*MAPSCALE;H=plaza?VH:VH*MAPSCALE;
  SAFE.x=W/2;SAFE.y=H/2;
 }
-const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:36,enh:0.2,rarity:"희귀"},long:{name:"장검",atk:46,enh:0.22,rarity:"희귀"},enchant:{name:"인챈트 소드",atk:40,enh:0.2,rarity:"희귀"},moon:{name:"월광 검",atk:58,enh:0.25,rarity:"영웅"},void:{name:"공허 검",atk:90,enh:0.3,rarity:"전설"},judge:{name:"심판의 검",atk:999,rarity:"관리자",adminOnly:true}};
+const weapons={wood:{name:"나무 검",atk:8,rarity:"기본"},iron:{name:"철 검",atk:16,rarity:"일반"},flame:{name:"화염 검",atk:36,enh:0.2,rarity:"희귀"},long:{name:"장검",atk:46,enh:0.22,rarity:"희귀"},enchant:{name:"인챈트 소드",atk:300,enh:0.2,rarity:"울트라"},moon:{name:"월광 검",atk:58,enh:0.25,rarity:"영웅"},void:{name:"공허 검",atk:90,enh:0.3,rarity:"전설"},judge:{name:"심판의 검",atk:999,rarity:"관리자",adminOnly:true}};
 const STAGES=[{name:"초원"},{name:"사막"},{name:"얼음 동굴"},{name:"화산"},{name:"늪지"},{name:"공허의 균열"}];
-const ESSENCES={fire:{name:"화염 에센스",icon:"🔥",color:"#ff7849",desc:"공격 적중 시 화상 피해"},ice:{name:"빙결 에센스",icon:"❄️",color:"#8bdcff",desc:"일반 몬스터 둔화"},lightning:{name:"번개 에센스",icon:"⚡",color:"#ffe66d",desc:"주변 적에게 연쇄 피해"},nature:{name:"자연 에센스",icon:"🌿",color:"#75e6a0",desc:"처치 시 HP 회복"},holy:{name:"신성 에센스",icon:"✨",color:"#fff0a6",desc:"보스에게 추가 피해"},void:{name:"공허 에센스",icon:"🌌",color:"#c59aff",desc:"치명타 확률 증가"}};
+const ESSENCES={fire:{name:"화염 에센스",icon:"🔥",color:"#ff7849",desc:"특수화상(타격마다 중첩): 피해량 25% 화상 + 몹 공격력 60% 감소"},ice:{name:"빙결 에센스",icon:"❄️",color:"#8bdcff",desc:"0.5초 특수빙결 (타격마다 중첩 · 빙결 중 받는 피해 2배 · 이후 3초간 이동속도 80% 감소)"},lightning:{name:"번개 에센스",icon:"⚡",color:"#ffe66d",desc:"반경 100 연쇄 피해 (피해량 75%)"},nature:{name:"자연 에센스",icon:"🌿",color:"#75e6a0",desc:"공격 시 피해량의 50% HP 회복"},holy:{name:"신성 에센스",icon:"✨",color:"#fff0a6",desc:"모든 몹에게 최대 HP 10% 추가 피해"},void:{name:"공허 에센스",icon:"🌌",color:"#c59aff",desc:"특수치명타 확률 100% (피해 3배)"}};
 const TYPES={
  normal:{r:13,speed:55,dmg:5,hp:30,detect:125},
  fast:{r:10,speed:110,dmg:4,hp:18,detect:160},
@@ -1421,7 +1433,7 @@ function syncCodex(){
  for(const k of data.owned){if(weapons[k]&&!weapons[k].adminOnly&&!data.codex[k]){data.codex[k]=true;added.push(weapons[k].name)}}
  return added;
 }
-const RARITY_COLOR={"기본":"#929bb0","일반":"#6ee7b7","희귀":"#6aa8ff","영웅":"#b07cff","전설":"#ffd166","관리자":"#ff657a"};
+const RARITY_COLOR={"기본":"#929bb0","일반":"#6ee7b7","희귀":"#6aa8ff","영웅":"#b07cff","전설":"#ffd166","관리자":"#ff657a","울트라":"#ff4df0"};
 const OBTAIN={wood:"기본 지급",iron:"상점 120G · 조합(철 광석 5 + 몬스터 핵 2 + 50G) · 뽑기 20%",flame:"조합(철 검 + 화염 조각 5 + 몬스터 핵 3 + 100G) · 뽑기 4%",long:"조합(철 검 + 철 광석 15 + 몬스터 핵 6 + 200G)",moon:"조합(화염 검 +5 1자루 + 달빛 가루 50개) · 뽑기 0.75%",void:"뽑기 0.25%",judge:"관리자 전용 · 관리자가 기간 한정으로 하사"};
 const LORE={wood:"초원의 수련생이 처음 쥐는 평범한 나무 검.",iron:"대장간에서 두드려 만든 믿음직한 철 검.",flame:"칼날에 꺼지지 않는 불씨가 깃든 검.",long:"긴 칼날로 멀리서 적을 베어 넘기는 검. 사거리가 길다.",moon:"달빛을 머금은 칼날이 어둠 속에서 은은히 빛난다.",void:"공허에서 건져 올렸다는 전설의 검. 휘두르면 소리가 사라진다.",judge:"시볼의 질서를 지키는 자만이 쥘 수 있는 검. 베이는 것은 몬스터뿐이다."};
 function codexHtml(){
@@ -1444,12 +1456,14 @@ function adminToolsHtml(){
   +r("몬스터 전체 정리","현재 스테이지의 몬스터를 보상 없이 모두 제거 (보스 등장 조건 즉시 충족)","clear","실행")
   +r("보스 즉시 소환","몬스터가 남아 있어도 보스를 바로 소환","boss","소환")
   +r("몬스터 리스폰 초기화","현재 스테이지를 처음 상태로 다시 생성","reset","초기화")
+  +r("월드 레이드 즉시 개최","지금 바로 10분 레이드를 열어요 (모든 접속자에게 적용). 끝난 뒤 다음 레이드는 가장 가까운 정규 시간(15분 단위)에 열려요","raidopen","열기")
   +r("HP 가득 회복","HP를 100으로","heal","회복")
   +r("무적 모드","피해를 받지 않음 · 현재 "+(S.god?"켜짐":"꺼짐"),"god",S.god?"끄기":"켜기")
   +`<div class="sg-row"><div><b>스테이지 이동</b><div class="sg-note">잠금과 상관없이 어디든 이동 (6개 지형이 반복돼요)</div></div><div class="row" style="flex:0 0 auto"><input id="sgToolStage" type="number" min="1" step="1" value="${data.stage}" style="width:80px"><button data-action="tool:stage">이동</button></div></div>`;
 }
 function adminTool(k){
  if(!isAdmin){toast("관리자 전용이에요.");return}
+ if(k==="raidopen"){raidOpenNow();return}
  if(S.loc==="plaza"&&["clear","boss","reset"].includes(k)){toast("광장에서는 쓸 수 없어요.");return}
  if(k==="clear"){S.stageKills=BOSS_KILLS;for(const m of S.mons){m.alive=false;m.respawn=0}burst(S.px,S.py,"#8b7cff",20);checkBossUnlock();toast("몬스터를 모두 정리했어요.")}
  else if(k==="boss"){
@@ -1677,9 +1691,16 @@ function drawPassives(){
    첫 입력=설치, 성역 가까이에서 다시 입력=회수. 성역 효과는 시전자만 누림 */
 const SANCT_R=160,SANCT_RECALL=60,SANCT_FAR=420,SANCT_FAR_T=3; /* 시전자가 SANCT_FAR 넘게 멀어지면 3초간 깜빡이다 자동 회수 */
 const inSanct=()=>!!S.sanct&&Math.hypot(S.px-S.sanct.x,S.py-S.sanct.y)<=SANCT_R;
+function useSkill5(){
+ if(!S.running||data.hp<=0||S.chainSeq)return;
+ if(inSafe()){safeMsg();return}
+ if(data.weapon!=="enchant"){toast("스킬 5는 인챈트 소드 전용이에요.");return}
+ S.split=!S.split;ensureAudio();sfx("skill");toast(S.split?"분열의 원소 ON · 모든 에센스 효과가 2번씩 발동":"분열의 원소 OFF");
+}
 function useSkill4(){
  if(!S.running||data.hp<=0||S.chainSeq)return;
  if(inSafe()){safeMsg();return}
+ if(data.weapon==="enchant"){S.overd=!S.overd;ensureAudio();sfx("skill");toast(S.overd?"원소 과부하 ON · 공격력 1.5배 · 공속 증가 · 화상/빙결 2배 중첩 · 받는 피해 1.2배":"원소 과부하 OFF");return}
  if(!judgeOn()){toast("스킬 4는 심판의 검 전용이에요.");return}
  if(stunned())return;
  ensureAudio();
@@ -1756,7 +1777,31 @@ function drawSanct(){
  ctx.globalAlpha=1;
 }
 /* 스킬 3 중력의 작용 (심판의 검): 300px 안의 모든 적을 내 앞으로 끌어당김 · 쿨타임 2초 */
+function all6(){return data.weapon==="enchant"&&Object.keys(ESSENCES).every(ES)}
+function startCh3(){
+ if(!S.running||data.hp<=0||S.chainSeq||S.ch3)return;
+ if(inSafe()){safeMsg();return}
+ if(!all6()){toast("에센스 6개를 모두 장착해야 해금돼요.");return}
+ if(S.cd3>0||stunned())return;
+ S.ch3={t:0};ensureAudio();sfx("skill");
+}
+function endCh3(){
+ const c=S.ch3;if(!c)return;S.ch3=null;
+ if(c.t<0.3)return;
+ const p=Math.min(1,c.t/3),Rd=60+440*p,atk=atkNow();
+ S.cd3=2;S.shake=Math.max(S.shake,0.6);
+ const cx=S.px,cy=S.py,wave=()=>{S.ring={x:cx,y:cy,t:0,max:Rd,col:"#ffffff"};sfx("skill");
+  for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-cx,m.y-cy)<Rd+m.r)hitMon(m,Math.round(atk*(3+3*p)),false)}};
+ wave();for(let i=1;i<6;i++)setTimeout(()=>{if(S.running&&data.hp>0)wave()},i*120);
+ data.skillsUsed++;track("skill");save();
+}
+function chTick(dt){
+ const c=S.ch3;if(!c)return;
+ if(data.weapon!=="enchant"||data.hp<=0||inSafe()||!all6()){S.ch3=null;return}
+ c.t+=dt;S.invuln=Math.max(S.invuln,0.15);if(c.t>=4)endCh3();
+}
 function useSkill3(){
+ if(data.weapon==="enchant")return;
  if(!S.running||data.hp<=0||S.chainSeq||S.pulls)return;
  if(inSafe()){safeMsg();return}
  if(!judgeOn()){toast("스킬 3은 심판의 검 전용이에요.");return}
@@ -1910,7 +1955,7 @@ function copiesOf(k){
  return out;
 }
 syncStockOf(data);
-const atkNow=()=>Math.round(atkOf(data.weapon)*(S.status&&S.status.weak>0?0.7:1));
+const atkNow=()=>Math.round(atkOf(data.weapon)*(S.status&&S.status.weak>0?0.7:1)*(data.weapon==="enchant"&&S.overd?1.5:1));
 
 /* ── 도트 스프라이트 생성 ── */
 const OUT="#1b1322";
@@ -2232,12 +2277,23 @@ function nearestTarget(maxD){
  for(const m of allTargets()){if(!m.alive)continue;const d=Math.hypot(m.x-S.px,m.y-S.py);if(d<bd){bd=d;best=m}}
  return best;
 }
+function ES(k){if(data.weapon!=="enchant")return false;if(!data.ess){data.ess={};if(data.essence&&data.essence!=="none")data.ess[data.essence]=true}return !!data.ess[k]}
 function hitMon(m,dmg,crit){
  if(!m.alive)return;
  if(m.pvpId){pvpHit(m,dmg,crit);return}
  if(m.raidId){raidHit(m,dmg,crit);return}
+ const SP=data.weapon==="enchant"&&S.split;
+ if(ES("void")){dmg*=SP?9:3;crit=true}
+ if(ES("holy"))dmg+=Math.round(m.max*0.1)*(SP?2:1);
+ if(m.freezeT>0)dmg*=2;
+ dmg=Math.round(dmg);
  m.hp-=dmg;m.hit=0.12;
-  if(data.weapon==="enchant"&&data.essence!=="none"){const e=data.essence;if(e==="fire")igniteMon(m,Math.max(1,Math.round(dmg*0.18)));else if(e==="ice")slowMon(m);else if(e==="lightning"){for(const other of allTargets()){if(other!==m&&other.alive&&Math.hypot(other.x-m.x,other.y-m.y)<95){other.hp-=Math.max(1,Math.round(dmg*0.22));other.hit=0.08;addText(other.x,other.y-20,"⚡"+Math.round(dmg*0.22),"#ffe66d");if(other.hp<=0)killMon(other)}}}else if(e==="holy"&&m.type==="boss"){m.hp-=Math.round(dmg*0.25)}}
+ if(data.weapon==="enchant"){for(let rp=SP?2:1;rp>0;rp--){
+  if(ES("fire")){{const bd={t:3,tick:0.5,dmg:Math.max(1,Math.round(dmg*0.25))};(m.burns||(m.burns=[])).push(bd);if(S.overd)m.burns.push({...bd});}if(m.burns.length>300)m.burns.shift();m.weakT=3}
+  if(ES("ice")){m.freezeT=Math.min(10,(m.freezeT||0)+(S.overd?1:0.5));m.iceSlowT=3}
+  if(ES("nature"))data.hp=Math.min(100,data.hp+Math.round(dmg*0.5));
+  if(ES("lightning")){const cd=Math.max(1,Math.round(dmg*0.75));for(const o of allTargets()){if(o!==m&&o.alive&&Math.hypot(o.x-m.x,o.y-m.y)<100){o.hp-=cd;o.hit=0.08;addText(o.x,o.y-20,"⚡"+cd,"#ffe66d");if(o.hp<=0)killMon(o)}}}
+ }}
  const a=Math.atan2(m.y-S.py,m.x-S.px);m.kx=Math.cos(a)*160;m.ky=Math.sin(a)*160;
  addText(m.x,m.y-m.r-30,String(dmg),crit?"#ffd166":"#ffffff");
  sfx("hit");burst(m.x,m.y,judgeOn()?"#ffffff":(SWORD_HIT[data.weapon]||"#ffffff"),4);
@@ -2283,7 +2339,6 @@ function killMon(m){
  /* 심판의 검으로 처치해도 골드·경험치·기록·재료 드롭 전부 정상 지급 */
  rollDrops(m,boss);
  data.kills++;track("kill");
-  if(data.weapon==="enchant"&&data.essence==="nature")data.hp=Math.min(100,data.hp+4);
  const rm=stageInfo().rewardMul;
  const gold=Math.round((boss?35:8)*rm),xpg=Math.round((boss?25:10)*rm);data.gold+=gold;data.xp+=xpg;
  addText(m.x,m.y-14,"+"+gold+"G","#ffd166");
@@ -2302,13 +2357,15 @@ function killMon(m){
 function attack(){
  if(!S.running||data.hp<=0||S.time<S.attackReady||S.chainSeq||stunned())return;
  if(inSafe()){if(S.loc==="plaza"&&interact())return;safeMsg();return}
- S.attackReady=S.time+0.36;ensureAudio();
+ S.attackReady=S.time+(data.weapon==="enchant"&&S.overd?0.2:0.36);ensureAudio();
  const t=nearestTarget(judgeOn()?95:55);
  const ang=t?Math.atan2(t.y-S.py,t.x-S.px):(S.face>0?0:Math.PI);
  S.swing={t:0,dur:0.18,ang};
  if(net)net.ch.send({type:"broadcast",event:"swing",payload:{id:net.id,ang}});
  if(judgeOn()){for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<95)hitMon(m,judgeDmg(m),false)}}
- else if(t){const crit=Math.random()<(data.weapon==="enchant"&&data.essence==="void"?0.25:0.1);hitMon(t,atkNow()*2*(crit?2:1),crit)}
+ else if(t){const n=data.weapon==="enchant"?Math.max(1,Object.keys(ESSENCES).filter(ES).length):1;
+  const hit=()=>{if(!t.alive)return;const crit=!ES("void")&&Math.random()<0.1;hitMon(t,atkNow()*2*(crit?2:1),crit)};
+  hit();for(let i=1;i<n;i++)setTimeout(()=>{if(S.running&&data.hp>0)hit()},i*60)}
 }
 /* ── 검별 간단 스킬 · 약한 이펙트 (심판의 검 제외) ── */
 const SWORD_SK={
@@ -2317,9 +2374,10 @@ const SWORD_SK={
  flame:{n1:"화염\n폭발",n2:"불꽃\n돌진",d:"화염 폭발(주변 + 화상) / 불꽃 돌진(화상)"},
  long:{n1:"장검\n휘두르기",n2:"돌진\n베기",d:"장검 휘두르기(넓고 긴 부채꼴 · 높은 데미지) / 돌진 베기(돌진 · 피해)"},
  moon:{n1:"월광\n참격",n2:"월광\n도약",d:"월광 참격(직선 관통) / 월광 도약(빠른 돌진 · 긴 무적)"},
+ enchant:{n1:"원소의\n폭주",n2:"자기파괴\n원소",d:"원소의 폭주(장착 에센스 수×30 반경 폭발 · 장착 에센스 효과 적용 · 쿨 0.5초) / 자기파괴적 원소(ON/OFF · 받는 피해 1%만 받고 원래 받을 피해(받은 피해의 100배) 반사) / 원소 과부하(ON/OFF · 공격력 1.5배 · 공속 증가 · 화상/빙결 2배 중첩 · 받는 피해 1.2배) / 분열의 원소(5번 · ON/OFF · 모든 에센스 효과 2번씩 발동)"},
  void:{n1:"공허\n파동",n2:"차원\n도약",d:"공허 파동(주변 + 둔화) / 차원 도약(도착 시 파동)"}
 };
-const skName=n=>{const k=SWORD_SK[data.weapon]||SWORD_SK.wood;return n===1?k.n1:k.n2};
+const skName=n=>{const k=SWORD_SK[data.weapon]||SWORD_SK.wood;if(n===2&&data.weapon==="enchant"&&S.refl)return"반사\nON";return n===1?k.n1:k.n2};
 const SWORD_RGB={wood:"255,255,255",iron:"205,214,232",flame:"255,140,60",long:"240,220,150",enchant:"190,160,255",moon:"150,200,255",void:"190,120,255"};
 const SWORD_HIT={wood:"#ffffff",iron:"#cfd6e6",flame:"#ff8a3d",long:"#f0dc96",enchant:"#c6a7ff",moon:"#9fd0ff",void:"#c08aff"};
 const swordRgb=()=>SWORD_RGB[data.weapon]||"255,255,255";
@@ -2364,6 +2422,11 @@ function swordSkill1(){
    const dx=m.x-S.px,dy=m.y-S.py,pr=dx*ca+dy*sa,pp=Math.abs(-dx*sa+dy*ca);
    if(pr>0&&pr<L+m.r&&pp<m.r+22)hitMon(m,Math.round(atk*4.5),false);
   }
+ }else if(w==="enchant"){
+  const es=Object.keys(ESSENCES).filter(ES);
+  if(!es.length){S.cd1=0;toast("에센스를 장착해야 해요.");return}
+  S.cd1=0.5;const Rd=es.length*30;ring(Rd,ESSENCES[es[0]].color);
+  for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<Rd+m.r)hitMon(m,Math.round(atk*3),false)}
  }else if(w==="void"){
   ring(140,"#b07cff");
   for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<140){hitMon(m,Math.round(atk*3.2),false);slowMon(m)}}
@@ -2374,7 +2437,8 @@ function swordSkill1(){
  data.skillsUsed++;track("skill");save();
 }
 function dashEnd(d){
- if(!d||d.kind!=="void"||judgeOn())return;
+ if(!d||(d.kind!=="void"&&d.kind!=="enchant")||judgeOn())return;
+ if(d.kind==="enchant"){S.ring={x:S.px,y:S.py,t:0,max:130,col:"#c6a7ff"};for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<130+m.r)hitMon(m,Math.round(atkNow()*3),false)}return}
  S.ring={x:S.px,y:S.py,t:0,max:90,col:"#b07cff"};
  for(const m of allTargets()){if(m.alive&&Math.hypot(m.x-S.px,m.y-S.py)<90){hitMon(m,Math.round(atkNow()*2),false);slowMon(m)}}
 }
@@ -2392,12 +2456,13 @@ function useSkill2(){
  if(data.level<4&&!judgeOn()){toast("레벨 4에 해금됩니다.");return}
  if(S.cd2>0||S.dash||stunned())return;
  if(judgeOn()){startChain();return}
+ if(data.weapon==="enchant"){S.refl=!S.refl;ensureAudio();sfx("skill");toast(S.refl?"자기파괴적 원소 ON · 받는 피해 1%, 원래 피해(100배) 반사":"자기파괴적 원소 OFF");return}
  S.cd2=6;ensureAudio();sfx("skill");
  let dx=S.vx,dy=S.vy;const l=Math.hypot(dx,dy);
  if(l>20){dx/=l;dy/=l}else{dx=S.face;dy=0}
  const w=data.weapon,sp=w==="moon"?1000:780,dur=w==="moon"?0.18:0.16;
  S.dash={t:dur,vx:dx*sp,vy:dy*sp,hit:new Set(),kind:w};
- S.invuln=Math.max(S.invuln,(w==="moon"||w==="void")?0.45:0.2);
+ S.invuln=Math.max(S.invuln,(w==="moon"||w==="void"||w==="enchant")?0.45:0.2);
  data.skillsUsed++;track("skill");save();
 }
 function potion(){
@@ -2442,10 +2507,13 @@ function updStatus(dt){
  S.dotT+=dt;
  if(S.dotT>=0.5){S.dotT-=0.5;if(st.burn>0)dotPlayer(2,"#ff8a3d");if(st.poison>0)dotPlayer(1,"#8ccf6a")}
 }
+function hurtFrom(m,n,stat){S.hurtSrc=m;try{hurt(n,stat)}finally{S.hurtSrc=null}}
 function hurt(n,stat){
  if(S.invuln>0||data.hp<=0||inSafe()||S.god||S.chainSeq)return;
  applyStatus(stat);
  if(judgeOn())n=Math.max(1,Math.ceil(n*0.1)); /* 빛의 결계: 받는 피해 90% 감소 */
+ if(data.weapon==="enchant"&&S.overd)n=Math.round(n*1.2);
+ if(data.weapon==="enchant"&&S.refl){const raw=n;n=Math.max(1,Math.round(n*0.01));const src=S.hurtSrc;if(src&&src.alive)dotHit(src,Math.max(1,raw),"#c6a7ff")}
  n=pvAbsorb(n);if(n<=0){S.invuln=0.6;S.flash=0.1;return}
  data.hp-=n;S.invuln=0.6;S.flash=0.2;S.shake=0.3;
  addText(S.px,S.py-40,"-"+n,"#ff657a");sfx("hurt");
@@ -2495,7 +2563,7 @@ function bossAI(m,dt,dx,dy,d){
  a.cd-=dt;
  const sp=TYPES.boss.speed*(enr?1.35:1);
  m.x+=dx/d*sp*dt;m.y+=dy/d*sp*dt;
- if(d<m.r+PR+4)hurt(m.dmg,m.stat);
+ if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
  if(a.cd<=0){a.cd=(enr?1.3:2.1)+Math.random()*0.8;bossCast(m,a,enr)}
 }
 function updTele(dt){
@@ -2514,7 +2582,7 @@ function updTele(dt){
 function updateMon(m,dt){
  if(m.pvpId||m.raidId)return;
  if(!m.alive){
-  if(m.respawn&&S.time>=m.respawn){m.alive=true;m.hp=m.max;m.x=m.hx;m.y=m.hy;m.respawn=0;m.aggro=false;m.burn=null;m.slowT=0}
+  if(m.respawn&&S.time>=m.respawn){m.alive=true;m.hp=m.max;m.x=m.hx;m.y=m.hy;m.respawn=0;m.aggro=false;m.burn=null;m.burns=null;m.iceSlowT=0;m.slowT=0;m.freezeT=0;m.weakT=0}
   return;
  }
  m.hit=Math.max(0,m.hit-dt);
@@ -2524,6 +2592,15 @@ function updateMon(m,dt){
   if(m.burn.tick<=0){m.burn.tick+=0.5;burst(m.x,m.y-m.r*0.5,"#ff8a3d",3);dotHit(m,m.burn.dmg);if(!m.alive)return}
   if(m.burn.t<=0)m.burn=null;
  }
+ if(m.burns&&m.burns.length){
+  for(let i=m.burns.length-1;i>=0;i--){const b=m.burns[i];b.t-=dt;b.tick-=dt;
+   if(b.tick<=0){b.tick+=0.5;dotHit(m,b.dmg);if(!m.alive){m.burns=null;return}}
+   if(b.t<=0)m.burns.splice(i,1)}
+ }
+ if(m.weakT>0)m.weakT-=dt;
+ if(m.iceSlowT>0)m.iceSlowT-=dt;
+ if(m.freezeT>0){m.freezeT-=dt;return}
+ if(m.iceSlowT>0)dt*=0.2;
  m.x+=m.kx*dt;m.y+=m.ky*dt;
  const decay=Math.pow(0.02,dt);m.kx*=decay;m.ky*=decay;
  const T=TYPES[m.type],dx=S.px-m.x,dy=S.py-m.y,d=Math.hypot(dx,dy)||1;
@@ -2534,11 +2611,11 @@ function updateMon(m,dt){
   m.shootCd-=dt;
   if(m.shootCd<=0&&d<320){
    m.shootCd=2.2;
-   S.projs.push({x:m.x,y:m.y,vx:dx/d*190,vy:dy/d*190,t:3.5,dmg:m.dmg,stat:m.stat});
+   S.projs.push({x:m.x,y:m.y,vx:dx/d*190,vy:dy/d*190,t:3.5,dmg:Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),stat:m.stat,src:m});
   }
  }else if(m.aggro&&!inSafe()){
   m.x+=dx/d*T.speed*dt;m.y+=dy/d*T.speed*dt;
-  if(d<m.r+PR+4)hurt(m.dmg,m.stat);
+  if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
  }else{
   m.x+=(m.hx-m.x)*Math.min(1,dt*2);m.y+=(m.hy-m.y)*Math.min(1,dt*2);
  }
@@ -2546,7 +2623,7 @@ function updateMon(m,dt){
  if(!safeOff()){const sx=m.x-SAFE.x,sy=m.y-SAFE.y,sd=Math.hypot(sx,sy)||1,min=SAFE.r+m.r;if(sd<min){m.x=SAFE.x+sx/sd*min;m.y=SAFE.y+sy/sd*min}}
 }
 function update(dt){
- S.time+=dt;
+ S.time+=dt;chTick(dt);
  S.invuln=Math.max(0,S.invuln-dt);
  S.flash=Math.max(0,S.flash-dt);
  S.shake=Math.max(0,S.shake-dt*1.5);
@@ -2638,7 +2715,7 @@ function update(dt){
  for(const p of S.projs){
   p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
   if(inSafe(p.x,p.y)){p.t=0;continue}
-  if(Math.hypot(p.x-S.px,p.y-S.py)<PR+5){hurt(p.dmg,p.stat);p.t=0}
+  if(Math.hypot(p.x-S.px,p.y-S.py)<PR+5){hurtFrom(p.src,p.dmg,p.stat);p.t=0}
  }
  S.projs=S.projs.filter(p=>p.t>0&&p.x>0&&p.x<W&&p.y>0&&p.y<H);
 }
@@ -2720,6 +2797,12 @@ function draw(){
   ctx.globalAlpha=1-p;ctx.strokeStyle=S.ring.col||"#8b7cff";ctx.lineWidth=6*(1-p)+1;
   ctx.beginPath();ctx.arc(S.ring.x,S.ring.y,S.ring.max*e,0,Math.PI*2);ctx.stroke();
   ctx.globalAlpha=1;
+ }
+ if(S.ch3){
+  const c=S.ch3,p=Math.min(1,c.t/3),Rd=60+440*p,ks=Object.keys(ESSENCES);
+  ctx.save();ctx.globalAlpha=0.25+0.2*p;ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.setLineDash([8,8]);ctx.beginPath();ctx.arc(S.px,S.py,Rd,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  ks.forEach((k,i)=>{const a=S.time*(3+4*p)+i*Math.PI/3,r=90*(1-0.8*p),x=S.px+Math.cos(a)*r,y=S.py+Math.sin(a)*r;ctx.globalAlpha=1;ctx.fillStyle=ESSENCES[k].color;ctx.shadowColor=ESSENCES[k].color;ctx.shadowBlur=14;ctx.beginPath();ctx.arc(x,y,8+5*p,0,Math.PI*2);ctx.fill()});
+  ctx.restore();
  }
  for(const z of S.tele){
   if(z.wait>0)continue;
@@ -2856,13 +2939,15 @@ function hud(){
  {const nw=syncCodex();if(nw.length){toast("📖 도감 등록: "+nw.join(", "));save();renderIfOpen()}}
  const jo=judgeOn();
  set("sgSkill1",jo?(S.cd1>0?S.cd1.toFixed(1):"⚡\n천벌"):data.level<2?"🔒\nLv2":S.cd1>0?S.cd1.toFixed(1):skName(1));
+ {const ac=document.querySelector("#sibolGamePanel .sg-stage .sg-acts");if(ac)ac.classList.toggle("ench",data.weapon==="enchant")}
+ set("sgSkill5",S.split&&data.weapon==="enchant"?"분열\nON":"분열의\n원소");$("sgSkill5").disabled=data.weapon!=="enchant";
  set("sgSkill2",jo?(S.cd2>0?S.cd2.toFixed(1):S.chain?"충전\n"+Math.round(S.chain.t/1.5*100)+"%":"⛓\n사슬"):data.level<4?"🔒\nLv4":S.cd2>0?S.cd2.toFixed(1):skName(2));
  $("sgSkill1").disabled=(data.level<2&&!jo)||S.cd1>0;
  $("sgSkill2").disabled=(data.level<4&&!jo)||S.cd2>0;
- set("sgSkill3",jo?(S.cd3>0?S.cd3.toFixed(1):"중력의\n작용"):"🔒\n스킬3");
- $("sgSkill3").disabled=!jo||S.cd3>0;
- set("sgSkill4",jo?(S.sanct?"🗡\n회수":"🗡\n성역"):"🔒\n스킬4");
- $("sgSkill4").disabled=!jo;
+ set("sgSkill3",jo?(S.cd3>0?S.cd3.toFixed(1):"중력의\n작용"):all6()?(S.cd3>0?S.cd3.toFixed(1):S.ch3?"융합중":"멸망적\n원소"):"🔒\n스킬3");
+ $("sgSkill3").disabled=!(jo||all6())||(S.cd3>0&&!S.ch3);
+ set("sgSkill4",jo?(S.sanct?"🗡\n회수":"🗡\n성역"):data.weapon==="enchant"?(S.overd?"과부하\nON":"원소\n과부하"):"🔒\n스킬4");
+ $("sgSkill4").disabled=!(jo||data.weapon==="enchant");
  $("sgDash").disabled=S.rollCd>0;
  set("sgDash",S.rollCd>0?S.rollCd.toFixed(1):"💨\n대쉬");
  set("sgOnline",net?net.count:0);
@@ -2894,7 +2979,7 @@ function renderView(){
    if(invSel){
     const [k,is]=invSel.split("_"),i=Number(is),w=weapons[k],lv=w.adminOnly?0:(copiesOf(k)[i]||0),col=RARITY_COLOR[w.rarity]||"#929bb0";
     const atk=k==="judge"?"공격력 몬스터 HP의 1000%":"공격력 "+(lv?atkAt(k,lv)+" (기본 "+atkAt(k,0)+" + 강화 "+lv+"단계)":atkAt(k,0));
-    const lines=[atk,SWORD_SK[k]?"스킬: "+SWORD_SK[k].d:"",k==="judge"?"패시브: 빛의 결계(받는 피해 90% 감소 · 상태 이상 면역)":k==="enchant"?"인챈트: "+(data.essence==="none"?"에센스 미장착":ESSENCES[data.essence].name+" · "+ESSENCES[data.essence].desc):"",k==="judge"&&!isAdmin&&data.loans&&data.loans.judge?new Date(data.loans.judge).toLocaleString("ko-KR")+"까지 하사":"",i>0?"여분 검 · 강화 탭에서 강화 수치가 같은 검끼리 합쳐 강화해요.":""].filter(Boolean);
+    const lines=[atk,SWORD_SK[k]?"스킬: "+SWORD_SK[k].d:"",k==="judge"?"패시브: 빛의 결계(받는 피해 90% 감소 · 상태 이상 면역)":k==="enchant"?"인챈트: "+(Object.keys(ESSENCES).filter(ES).map(k=>ESSENCES[k].name).join(" + ")||"에센스 미장착"):"",k==="judge"&&!isAdmin&&data.loans&&data.loans.judge?new Date(data.loans.judge).toLocaleString("ko-KR")+"까지 하사":"",i>0?"여분 검 · 강화 탭에서 강화 수치가 같은 검끼리 합쳐 강화해요.":""].filter(Boolean);
     detail=`<div class="sg-detail" style="border-color:${col}"><div><b>${esc(w.name)}${lv?` (강화 ${lv})`:""}</b> <span class="role-badge" style="color:${col}">${esc(w.rarity)}</span></div><div class="sg-note">${lines.map(esc).join("<br>")}</div><div style="display:flex;gap:8px">${i===0?`<button data-action="equip:${k}" ${data.weapon===k?"disabled":""}>${data.weapon===k?"장착 중":"장착"}</button>`:""}<button data-action="inv:">닫기</button></div></div>`;
    }
    return detail+`<div class="sg-inv">${tiles.map(tile).join("")}</div>`;
@@ -2919,11 +3004,10 @@ function renderView(){
   h=row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G"+(data.owned.includes("iron")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50)
    +row("화염 검","철 검 보유 + 화염 조각 5개 + 핵 3개 + 100G"+(data.owned.includes("flame")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:flame",label:"조합"},!data.owned.includes("iron")||data.mats.flame<5||data.mats.core<3||data.gold<100)
    +row("장검","철 검 보유 + 철 광석 15개 + 핵 6개 + 200G"+(data.owned.includes("long")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:long",label:"조합"},!data.owned.includes("iron")||data.mats.iron<15||data.mats.core<6||data.gold<200)
-   +row("인챈트 소드","장검 1자루 + 몬스터 핵 100개 + 철 광석 100개 · 공격력 40, 공격 속도는 장검과 동일"+(data.owned.includes("enchant")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:enchant",label:"조합"},!data.owned.includes("long")||data.mats.core<100||data.mats.iron<100)
     +row("월광 검","화염 검 +5 1자루(소모) + 달빛 가루 50개"+(data.owned.includes("moon")?" · 이미 보유 중 → 중복 +1 (강화 재료)":"")+` · 보유 +5 화염 검 ${(data.stock&&data.stock.flame&&data.stock.flame[5])||0}자루`,{action:"craft:moon",label:"조합"},!(data.stock&&data.stock.flame&&data.stock.flame[5]>0)||data.mats.moon<50)
-    +`<h3 style="margin:18px 0 8px">에센스 인챈트</h3><p class="sg-note">인챈트 소드를 장착하고 보유한 에센스를 선택하세요. 에센스는 속성별 월드 보스 처치 보상으로 획득하도록 설계되어 있으며, 월드 보스는 아직 미구현입니다.</p>`
-    +row("현재 속성",data.essence==="none"?"에센스 미장착":ESSENCES[data.essence].name+" · "+ESSENCES[data.essence].desc,{action:"essence:none",label:"해제"},data.essence==="none")
-    +Object.entries(ESSENCES).map(([ek,e])=>row(e.icon+" "+e.name,`${e.desc} · 보유 ${data.essences[ek]||0}개${data.essence===ek?" · 현재 장착":""}`,{action:"essence:"+ek,label:data.essence===ek?"장착 중":"교체"},!data.owned.includes("enchant")||!(data.essences[ek]>0)||data.essence===ek)).join("");
+    +`<h3 style="margin:18px 0 8px">에센스 인챈트</h3><p class="sg-note">인챈트 소드(울트라 · 레이드 0.1% 드랍)를 장착하고 보유한 에센스를 여러 개 동시에 장착(조합)할 수 있어요. 에센스는 월드 레이드 토벌 시 1% 확률로 획득해요.</p>`
+    +row("현재 속성",Object.keys(ESSENCES).filter(ES).map(k=>ESSENCES[k].name).join(" + ")||"에센스 미장착",{action:"essence:none",label:"전부 해제"},!Object.keys(ESSENCES).some(ES))
+    +Object.entries(ESSENCES).map(([ek,e])=>row(e.icon+" "+e.name,`${e.desc} · 보유 ${data.essences[ek]||0}개${ES(ek)?" · 장착 중":""}`,{action:"essence:"+ek,label:ES(ek)?"해제":"장착"},!data.owned.includes("enchant")||(!ES(ek)&&!(data.essences[ek]>0)))).join("");
  }else if(tab==="enhance"){
   h=enhanceHtml();
  }else if(tab==="gacha"){
@@ -2985,16 +3069,13 @@ function action(a){
   if(data.gold>=100){data.gold-=100;data.tickets=(data.tickets||0)+1;toast("뽑기권을 구매했어요.")}else toast("골드가 부족해요.");
  }
  else if(type==="essence"){
-   if(k==="none"){data.essence="none";toast("에센스 인챈트를 해제했어요.")}
+   if(k==="none"){data.ess={};data.essence="none";toast("에센스 인챈트를 해제했어요.")}
    else if(!data.owned.includes("enchant"))toast("인챈트 소드를 먼저 조합해야 해요.")
    else if(!ESSENCES[k]||!(data.essences[k]>0))toast("해당 에센스가 부족해요.")
-   else{data.essence=k;toast(ESSENCES[k].name+" 인챈트 적용!")}
+   else{if(!data.ess)data.ess={};data.ess[k]=!data.ess[k];data.essence=k;toast(ESSENCES[k].name+(data.ess[k]?" 장착!":" 해제"))}
   }
   else if(type==="craft"){
-  if(k==="enchant"&&data.owned.includes("long")&&data.mats.iron>=100&&data.mats.core>=100){
-    data.mats.iron-=100;data.mats.core-=100;const ls=data.stock.long||{};let consumed=false;for(const lv of Object.keys(ls).sort((a,b)=>Number(a)-Number(b))){if(ls[lv]>0){ls[lv]--;if(ls[lv]<=0)delete ls[lv];consumed=true;break}}
-    if(!consumed){data.mats.iron+=100;data.mats.core+=100;toast("장검을 찾을 수 없어요.")}else{if(stockTotal(ls)<1){data.owned=data.owned.filter(x=>x!=="long");delete data.stock.long;delete data.enhance.long;delete data.duplicates.long;if(data.weapon==="long")data.weapon="wood"}else resyncK("long");const had=data.owned.includes("enchant");giveCopy("enchant");toast(had?"인챈트 소드 조합 · 중복 획득 · 강화 재료 +1":"인챈트 소드 조합 성공!")}}
-   else if(k==="iron"&&data.mats.iron>=5&&data.mats.core>=2&&data.gold>=50){data.mats.iron-=5;data.mats.core-=2;data.gold-=50;if(data.owned.includes(k)){giveCopy(k);toast("철 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("철 검 조합 성공!")}}
+  if(k==="iron"&&data.mats.iron>=5&&data.mats.core>=2&&data.gold>=50){data.mats.iron-=5;data.mats.core-=2;data.gold-=50;if(data.owned.includes(k)){giveCopy(k);toast("철 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("철 검 조합 성공!")}}
   else if(k==="flame"&&data.owned.includes("iron")&&data.mats.flame>=5&&data.mats.core>=3&&data.gold>=100){data.mats.flame-=5;data.mats.core-=3;data.gold-=100;if(data.owned.includes(k)){giveCopy(k);toast("🔥 화염 검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("🔥 화염 검 조합 성공!")}}
   else if(k==="long"&&data.owned.includes("iron")&&data.mats.iron>=15&&data.mats.core>=6&&data.gold>=200){data.mats.iron-=15;data.mats.core-=6;data.gold-=200;if(data.owned.includes(k)){giveCopy(k);toast("장검 조합 · 중복 획득 · 강화 재료 +1")}else{giveCopy(k);toast("장검 조합 성공!")}}
   else if(k==="moon"&&data.stock&&data.stock.flame&&data.stock.flame[5]>0&&data.mats.moon>=50){
@@ -3059,8 +3140,9 @@ async function submitScore(){
 const CDR=[
  ["sgSkill1",()=>S.cd1,()=>!judgeOn()&&data.level<2],
  ["sgSkill2",()=>S.cd2,()=>!judgeOn()&&data.level<4],
- ["sgSkill3",()=>S.cd3,()=>!judgeOn()],
- ["sgSkill4",()=>0,()=>!judgeOn()],
+ ["sgSkill3",()=>S.cd3,()=>!judgeOn()&&!all6()],
+ ["sgSkill4",()=>0,()=>!judgeOn()&&data.weapon!=="enchant"],
+ ["sgSkill5",()=>0,()=>data.weapon!=="enchant"],
  ["sgDash",()=>S.rollCd,()=>false]
 ].map(([id,get,locked])=>({id,get,locked,el:null,max:1,last:0}));
 function updCdRings(){
@@ -3192,6 +3274,7 @@ async function netConnect(){
  ch.on("broadcast",{event:"pvphit"},({payload})=>pvpOnHit(payload));
  ch.on("broadcast",{event:"pvpkill"},({payload})=>pvpOnKill(payload));
  ch.on("broadcast",{event:"raid"},({payload})=>raidOnMsg(payload));
+ ch.on("broadcast",{event:"raidopen"},({payload})=>raidOnOpen(payload));
  ch.subscribe(async st=>{if(st==="SUBSCRIBED"&&net)await ch.track({nick})});
 }
 function netLeave(){if(net){try{net.ch.unsubscribe()}catch{}net=null}}
@@ -3391,10 +3474,58 @@ const RAID_LEN=900,RAID_ON=600,RAID_HP=200000,RAID_CAP=3000,RAID_MIN=3000,RAID_K
 const RAID_ATTR=["fire","ice","lightning","nature","holy","void"];
 const RAID_NAME={fire:"불꽃의 군주",ice:"서리 거인",lightning:"뇌전의 용",nature:"고대 수호수",holy:"타락한 대천사",void:"공허의 포식자"};
 const RT={alive:false,x:400,y:230,r:34,hp:RAID_HP,max:RAID_HP,type:"raid",raidId:1,hit:0,kx:0,ky:0};
-const RD={c:-1,my:0,pl:new Map(),zones:[],k:-1,won:false,sendT:0,uiT:0};
+const RD={c:-1,my:0,pl:new Map(),zones:[],k:-1,won:false,sendT:0,uiT:0,openT:0};
+/* 관리자 수동 개최 레이드: {start,end,attr,by}. 끝난 뒤 다음 레이드는 끝 이후 가장 가까운 정규 시간(15분 단위)부터 */
+const RAID_M_KEY="sibol-raid-manual-v1";
+let RM=null;try{const o=JSON.parse(localStorage.getItem(RAID_M_KEY)||"null");if(o&&Number.isFinite(o.start)&&RAID_ATTR.includes(o.attr)&&o.end>Date.now()-RAID_LEN*1000)RM={start:o.start,end:o.start+RAID_ON*1000,attr:o.attr,by:String(o.by||"")}}catch{}
+const raidAdm=new Map();
 let raidClaim=0;try{raidClaim=Number(localStorage.getItem(RAID_KEY))||0}catch{}
-const fmtT=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
-function raidInfo(){const now=Date.now(),c=Math.floor(now/(RAID_LEN*1000)),el=(now-c*RAID_LEN*1000)/1000;return{c,el,on:el<RAID_ON,left:RAID_ON-el,next:RAID_LEN-el,attr:RAID_ATTR[c%RAID_ATTR.length]}}
+const fmtT=s=>{if(!isFinite(s))return"관리자 개최 시";s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+function raidInfo(){
+ const now=Date.now(),L=RAID_LEN*1000;
+ if(RM&&now>=RM.start&&now<RM.end){
+  const el=(now-RM.start)/1000,nextAt=Math.ceil(RM.end/L)*L;
+  return{c:RM.start,el,on:true,left:RAID_ON-el,next:(nextAt-now)/1000,attr:RM.attr,manual:true};
+ }
+ return{c:-1,el:0,on:false,left:0,next:Infinity,attr:RAID_ATTR[0],none:true};
+ const c=Math.floor(now/L),el=(now-c*L)/1000;
+ /* 수동 레이드가 끝나기 전에 시작한 정규 회차는 건너뛰고, 끝 이후 첫 정규 시간부터 재개 */
+ const skipped=!!RM&&now>=RM.end&&c*L<RM.end;
+ return{c,el,on:!skipped&&el<RAID_ON,left:RAID_ON-el,next:RAID_LEN-el,attr:RAID_ATTR[c%RAID_ATTR.length]};
+}
+function raidSetManual(m){
+ RM=m;try{localStorage.setItem(RAID_M_KEY,JSON.stringify(m))}catch{}
+}
+function raidOpenNow(){
+ if(!isAdmin){toast("관리자 전용이에요.");return}
+ const I=raidInfo();
+ if(I.on){toast("이미 레이드가 진행 중이에요.");return}
+ const start=Date.now(),attr=RAID_ATTR[Math.floor(start/(RAID_LEN*1000))%RAID_ATTR.length];
+ raidSetManual({start,end:start+RAID_ON*1000,attr,by:net?net.id:""});
+ RD.openT=0;
+ toast("🌍 월드 레이드를 열었어요! 끝난 뒤 다음 레이드는 가장 가까운 정규 시간에 열려요.");
+ if(net)net.ch.send({type:"broadcast",event:"raidopen",payload:{by:net.id,start,attr}});
+ hud();renderIfOpen();
+}
+async function raidVerify(id){
+ if(!id||id.length<30)return false; /* 손님 ID는 관리자가 될 수 없음 */
+ if(raidAdm.has(id))return raidAdm.get(id);
+ let ok=true; /* 조회가 막혀 있으면 통과(실패 시 열림) — 조회되면 role이 admin이어야 함 */
+ try{const {data:p,error}=await window.__sibolDb.from("profiles").select("role").eq("id",id).maybeSingle();if(!error&&p)ok=p.role==="admin"}catch{}
+ raidAdm.set(id,ok);return ok;
+}
+async function raidOnOpen(p){
+ if(!p||!net)return;
+ const start=Number(p.start),attr=String(p.attr),by=String(p.by||""),now=Date.now();
+ if(!Number.isFinite(start)||!RAID_ATTR.includes(attr))return;
+ if(start>now+5000||now>=start+RAID_ON*1000)return; /* 미래/이미 끝난 레이드 무시 */
+ if(RM&&RM.start>=start)return; /* 이미 알고 있음 */
+ if(!(await raidVerify(by)))return;
+ if(RM&&RM.start>=start)return;
+ raidSetManual({start,end:start+RAID_ON*1000,attr,by});
+ toast("🌍 관리자가 월드 레이드를 열었어요! "+RAID_NAME[attr]);
+ hud();renderIfOpen();
+}
 function raidTotal(){let t=RD.my;for(const v of RD.pl.values())t+=v.d;return t}
 function raidBoard(){const a=[{nick:(net&&net.nick)||"나",d:RD.my,me:1}];for(const v of RD.pl.values())a.push(v);return a.filter(x=>x.d>0).sort((p,q)=>q.d-p.d)}
 function raidOnMsg(p){
@@ -3421,12 +3552,13 @@ function raidWin(I){
  raidClaim=I.c;try{localStorage.setItem(RAID_KEY,String(I.c))}catch{}
  const gold=300+Math.min(700,Math.round(RD.my/200));
  data.gold+=gold;data.xp+=100;levelCheck();
- grantWorldBossEssence(I.attr);
- toast("🌍 "+RAID_NAME[I.attr]+" 토벌 성공! 골드 +"+gold+" · "+ESSENCES[I.attr].name+" 획득");
+ let extra="";if(Math.random()<0.01){grantWorldBossEssence(I.attr);extra+=" · "+ESSENCES[I.attr].name+" 획득"}
+ if(Math.random()<0.001){giveCopy("enchant");extra+=" · 🌟 인챈트 소드 획득!!"}
+ toast("🌍 "+RAID_NAME[I.attr]+" 토벌 성공! 골드 +"+gold+extra);
  save();
 }
 function raidSpawnZones(I,k){
- const r=rng(I.c*977+k*131+7);
+ const r=rng((I.c%1000003)*977+k*131+7);
  if(k%4===3){RD.zones.push({x:RT.x,y:RT.y,r:330,ri:90,t:0,dur:1.6,dmg:30,done:false,flash:0.25});return}
  for(let i=0;i<3;i++)RD.zones.push({x:60+r()*(W-120),y:60+r()*(H-120),r:75,ri:0,t:-i*0.35,dur:1.3,dmg:22,done:false,flash:0.25});
 }
@@ -3437,6 +3569,7 @@ function raidTick(dt){
  RT.max=RAID_HP;RT.hp=Math.max(0,RAID_HP-tot);RT.hit=Math.max(0,RT.hit-dt);
  RT.alive=I.on&&!RD.won&&S.loc==="raid";
  if(!RD.won&&I.on&&tot>=RAID_HP){RD.won=true;raidWin(I)}
+ if(net&&RM&&RM.by&&Date.now()<RM.end){RD.openT-=dt;if(RD.openT<=0){RD.openT=8+Math.random()*4;net.ch.send({type:"broadcast",event:"raidopen",payload:{by:RM.by,start:RM.start,attr:RM.attr}})}} /* 나중에 접속한 사람도 받도록 주기적 재전송 */
  if(net&&RD.my>0){RD.sendT-=dt;if(RD.sendT<=0){RD.sendT=1.5;net.ch.send({type:"broadcast",event:"raid",payload:{id:net.id,nick:net.nick,c:I.c,d:RD.my}})}}
  if(tab==="raid"&&S.running){RD.uiT-=dt;if(RD.uiT<=0){RD.uiT=1;const el=$("raidLive");if(el)el.innerHTML=raidLiveHtml()}}
  if(S.loc!=="raid")return;
@@ -3459,10 +3592,10 @@ function enterRaid(){
  else toast("🌍 월드 레이드 입장! 빨간 경고 원을 피하며 보스를 공격하세요.");
  save();hud();renderIfOpen();
 }
-function raidAction(k){if(k==="enter")enterRaid();else if(k==="leave")travel("plaza")}
+function raidAction(k){if(k==="open")raidOpenNow();else if(k==="enter")enterRaid();else if(k==="leave")travel("plaza")}
 function raidLiveHtml(){
  const I=raidInfo(),a=ESSENCES[I.attr],tot=raidTotal(),pct=Math.min(100,tot/RAID_HP*100);
- let h=`<div class="sg-row"><div><b>${a.icon} ${RAID_NAME[I.attr]} <span class="role-badge">${a.name} 속성</span></b><div class="sg-note">${RD.won?"✅ 토벌 완료! 다음 레이드까지 "+fmtT(I.next):I.on?"⏱ 남은 시간 "+fmtT(I.left):"💤 휴식 중 · 다음 레이드까지 "+fmtT(I.next)}</div>`
+ let h=`<div class="sg-row"><div><b>${a.icon} ${RAID_NAME[I.attr]} <span class="role-badge">${a.name} 속성</span>${I.manual?' <span class="role-badge">관리자 개최</span>':""}</b><div class="sg-note">${RD.won?"✅ 토벌 완료! 다음 레이드까지 "+fmtT(I.next):I.on?"⏱ 남은 시간 "+fmtT(I.left):"💤 휴식 중 · 다음 레이드까지 "+fmtT(I.next)}</div>`
   +`<div class="sg-bosstrack" style="margin:6px 0"><span style="width:${(100-pct).toFixed(1)}%"></span></div><div class="sg-note">보스 HP ${fmtHp(Math.max(0,RAID_HP-tot))} / ${fmtHp(RAID_HP)} · 내 피해 <b>${fmtHp(RD.my)}</b>${RD.my>=RAID_MIN?"":" (보상 조건 "+fmtHp(RAID_MIN)+")"}</div></div></div>`;
  const bd=raidBoard().slice(0,8);
  h+=`<h3 style="margin:14px 0 8px">피해량 순위</h3>`+(bd.length?bd.map((x,i)=>`<div class="sg-row"><div><b>${i+1}. ${esc(x.nick)}${x.me?" (나)":""}</b><div class="sg-note">${fmtHp(x.d)} 피해</div></div></div>`).join(""):`<p class="sg-note">아직 기록이 없어요.</p>`);
@@ -3470,8 +3603,9 @@ function raidLiveHtml(){
 }
 function raidHtml(){
  const here=S.loc==="raid";
- return `<div class="sg-row"><div><b>🌍 월드 레이드</b><div class="sg-note">15분마다 10분간 열려요 · 접속한 모든 플레이어의 피해가 합산돼요 · 보스 속성은 순환(화염→빙결→번개→자연→신성→공허) · 한 번에 최대 ${RAID_CAP} 피해 반영 · 안전구역 없음</div></div><button class="primary" data-action="raid:${here?"leave":"enter"}">${here?"광장으로":"입장"}</button></div>`
-  +`<div class="sg-row"><div><b>보상</b><div class="sg-note">토벌 성공 시 내 피해 ${RAID_MIN} 이상이면 해당 속성 에센스 1개 + 골드 300~1000 + XP 100. 쓰러져도 골드는 줄지 않아요. 보스는 3초마다 경고 원(빨강)을 깔고, 4번째마다 중앙 바깥 전체를 공격해요(보스 바로 옆은 안전).</div></div></div>`
+ return `<div class="sg-row"><div><b>🌍 월드 레이드</b><div class="sg-note">관리자가 열 때만 10분간 열려요 · 접속한 모든 플레이어의 피해가 합산돼요 · 보스 속성은 순환(화염→빙결→번개→자연→신성→공허) · 한 번에 최대 ${RAID_CAP} 피해 반영 · 안전구역 없음</div></div><button class="primary" data-action="raid:${here?"leave":"enter"}">${here?"광장으로":"입장"}</button></div>`
+  +`<div class="sg-row"><div><b>보상</b><div class="sg-note">토벌 성공 시 내 피해 ${RAID_MIN} 이상이면 골드 300~1000 + (1% 에센스 / 0.1% 인챈트 소드) + XP 100. 쓰러져도 골드는 줄지 않아요. 보스는 3초마다 경고 원(빨강)을 깔고, 4번째마다 중앙 바깥 전체를 공격해요(보스 바로 옆은 안전).</div></div></div>`
+  +(isAdmin?`<div class="sg-row"><div><b>🛠 관리자: 레이드 즉시 개최</b><div class="sg-note">지금 10분 레이드를 열어요. 끝난 뒤 다음 레이드는 끝 이후 가장 가까운 정규 시간(15분 단위)에 열려요.${raidInfo().on?" (진행 중에는 불가)":""}</div></div><button class="primary" data-action="raid:open" ${raidInfo().on?"disabled":""}>지금 열기</button></div>`:"")
   +`<div id="raidLive">${raidLiveHtml()}</div>`;
 }
 function drawRaidArena(){
@@ -3525,14 +3659,16 @@ $("sgSkill2").onpointerdown=()=>{if(judgeOn())startChain()};
 $("sgSkill2").onpointerup=()=>{if(S.chain)castChain()};
 $("sgSkill2").onpointerleave=()=>{if(S.chain)castChain()};
 $("sgSkill3").onclick=useSkill3;
+{const b=$("sgSkill3");b.addEventListener("pointerdown",()=>{if(data.weapon==="enchant")startCh3()});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,endCh3))}
 $("sgSkill4").onclick=useSkill4;
+$("sgSkill5").onclick=useSkill5;
 $("sgPotion").onclick=potion;
 $("sgSummon").onclick=summonBoss;
 $("sgPlaza").onclick=()=>{if(!S.running)return;if(S.loc==="plaza")travel("field",Math.min(data.stage,data.maxStage));else travel("plaza")};
 $("sgDash").onclick=dashMove;
 $("sgMute").onclick=()=>{muted=!muted;$("sgMute").textContent=muted?"🔇":"🔊"};
 /* 멀티터치(조이스틱을 누른 채 버튼 누르기)에서는 click이 안 뜨는 기기가 있어 터치는 pointerdown으로 즉시 실행 */
-["sgAttack","sgSkill1","sgSkill2","sgSkill3","sgSkill4","sgPotion","sgDash","sgPlaza","sgSummon"].forEach(id=>{
+["sgAttack","sgSkill1","sgSkill2","sgSkill3","sgSkill4","sgSkill5","sgPotion","sgDash","sgPlaza","sgSummon"].forEach(id=>{
  const el=$(id),orig=el.onclick;if(!el||!orig)return;
  el.onclick=e=>{if(performance.now()-(el._tapT||0)<700)return;orig.call(el,e)};
  el.addEventListener("pointerdown",e=>{
@@ -3670,13 +3806,14 @@ document.addEventListener("keydown",e=>{
  if(k==="q"){potion();return}
  if(k==="b"){summonBoss();return}
  if(k==="e"){interact();return}
- if(k==="1"){useSkill1();return}
- if(k==="2"){useSkill2();return}
- if(k==="3"){useSkill3();return}
- if(k==="4"){useSkill4();return}
+ if(k==="1"){if(data.weapon==="enchant")useSkill2();else useSkill1();return}
+ if(k==="2"){if(data.weapon==="enchant")useSkill4();else useSkill2();return}
+ if(k==="3"){if(data.weapon==="enchant")useSkill1();else useSkill3();return}
+ if(k==="4"){if(data.weapon==="enchant")startCh3();else useSkill4();return}
+ if(k==="5"){useSkill5();return}
  if(["w","a","s","d","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(k))keys[k]=true;
 });
-document.addEventListener("keyup",e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false;if(k==="2"&&S.chain)castChain()});
+document.addEventListener("keyup",e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false;if(k===(data.weapon==="enchant"?"4":"3"))endCh3();if(k==="2"&&S.chain)castChain()});
 window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
 document.querySelectorAll("#mainMenu button").forEach(b=>{if(b.id!=="menuGames")b.addEventListener("click",()=>exit())});
 hud();
