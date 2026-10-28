@@ -2149,7 +2149,7 @@ async function netConnect(){
   if(!net||!payload||payload.id===net.id)return;
   let o=net.others.get(payload.id);
   if(!o){o={x:payload.x,y:payload.y};net.others.set(payload.id,o)}
-  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,adm:!!payload.adm,loc:payload.loc||"field",seen:performance.now()});
+  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,adm:!!payload.adm,loc:payload.loc||"field",stage:Number(payload.stage)||1,seen:performance.now()});
  });
  ch.on("broadcast",{event:"swing"},({payload})=>{
   if(!net||!payload)return;
@@ -2164,7 +2164,7 @@ function netLeave(){if(net){try{net.ch.unsubscribe()}catch{}net=null}}
 function netTick(dt){
  if(!net)return;
  S.netT+=dt;if(S.netT<0.1)return;S.netT=0;
- net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),lvl:data.level,team:net.team,adm:judgeOn(),loc:S.loc}});
+ net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),lvl:data.level,team:net.team,adm:judgeOn(),loc:S.loc,stage:data.stage}});
 }
 function updateRemotes(dt){
  if(!net)return;
@@ -2180,6 +2180,7 @@ function drawRemotes(){
  if(!net)return;
  for(const o of net.others.values()){
   if((o.loc||"field")!==S.loc)continue;
+  if(S.loc!=="plaza"&&Number(o.stage)!==Number(data.stage))continue;
   const sp=REMOTE[(o.team||0)%TEAMS.length];
   const pf=o.run?Math.floor(S.time*8)%4:4;
   shadowAt(o.x,o.y+PR*0.9,PR*1.1,PR*0.45);
