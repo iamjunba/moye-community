@@ -1224,7 +1224,7 @@ if(db){
   </div>
   <div class="sg-menupanel" id="sgMenuPanel"><div class="sg-menuhead"><b>☰ 메뉴</b><button id="sgMenuClose" type="button">✕ 닫기</button></div>
   <div class="sg-tabs">
-    <button data-sgtab="stage">🗺 스테이지</button><button data-sgtab="inventory" class="active">검 보관함</button><button data-sgtab="codex">📖 검 도감</button><button data-sgtab="shop">상점</button><button data-sgtab="quest">퀘스트</button><button data-sgtab="achievement">업적</button><button data-sgtab="craft">검 조합</button><button data-sgtab="enhance">검 강화</button><button data-sgtab="gacha">뽑기</button><button data-sgtab="lost">유실물</button><button data-sgtab="ranking">랭킹</button><button data-sgtab="admintools" id="sgAdminTab" class="hidden">🛠 관리 도구</button>
+    <button data-sgtab="stage">🗺 스테이지</button><button data-sgtab="raid">🌍 월드 레이드</button><button data-sgtab="inventory" class="active">검 보관함</button><button data-sgtab="codex">📖 검 도감</button><button data-sgtab="shop">상점</button><button data-sgtab="quest">퀘스트</button><button data-sgtab="achievement">업적</button><button data-sgtab="craft">검 조합</button><button data-sgtab="enhance">검 강화</button><button data-sgtab="gacha">뽑기</button><button data-sgtab="lost">유실물</button><button data-sgtab="pvp">⚔ PvP</button><button data-sgtab="ranking">랭킹</button><button data-sgtab="admintools" id="sgAdminTab" class="hidden">🛠 관리 도구</button>
   </div>
   <div id="sgView" class="sg-view"></div></div>
   <p class="sg-note">이동: 방향키/WASD · 공격: 스페이스(광장에서는 건물 앞에서 스페이스/E로 열기) · 안전구역(맵 중앙 초록 원)에서는 몬스터도 나도 공격할 수 없습니다. 스킬1: 1키(Lv2) · 스킬2: 2키(Lv4) · 물약: Q · 대쉬: Shift · 전체화면: F. 공격은 가까운 몬스터를 자동 조준하지만 직접 눌러야 합니다. 레벨, 골드, 검, 재료는 이 기기에 저장되며, 보스를 처치하면 랭킹에 기록됩니다.</p>
@@ -1259,7 +1259,7 @@ const SPRITE_OF={normal:"slime",fast:"imp",ranged:"mage",boss:"golem"};
 const SAFE={x:400,y:300,r:70};
 /* 안전구역 해제 조건(필드): 보스가 등장해 있거나, 몬스터가 나에게 어그로가 걸려 있을 때 */
 const safeOff=()=>S.loc!=="plaza"&&!!((S.boss&&S.boss.alive)||S.aggro);
-const inSafe=(x,y)=>S.loc==="plaza"||(!safeOff()&&Math.hypot((x===undefined?S.px:x)-SAFE.x,(y===undefined?S.py:y)-SAFE.y)<SAFE.r);
+const inSafe=(x,y)=>S.loc==="plaza"||(S.loc!=="pvp"&&S.loc!=="raid"&&!safeOff()&&Math.hypot((x===undefined?S.px:x)-SAFE.x,(y===undefined?S.py:y)-SAFE.y)<SAFE.r);
 let safeMsgAt=0;
 function safeMsg(){const n=performance.now();if(n-safeMsgAt>1200){safeMsgAt=n;toast("안전구역에서는 공격할 수 없어요.")}}
 const homes=[[160,150],[630,150],[160,440],[630,440],[400,110],[400,490],[100,300],[700,300]];
@@ -1305,10 +1305,13 @@ const BOOTHS=[
  {x:160,y:190,label:"상점",tab:"shop",color:"#ffd166"},
  {x:640,y:190,label:"대장간",tab:"craft",color:"#ff8a5c"},
  {x:160,y:400,label:"뽑기",tab:"gacha",color:"#6ee7b7"},
- {x:640,y:400,label:"검 도감",tab:"codex",color:"#6aa8ff"}
+ {x:640,y:400,label:"검 도감",tab:"codex",color:"#6aa8ff"},
+ {x:640,y:300,label:"⚔ PvP장",tab:"pvp",color:"#ff657a"},
+ {x:160,y:300,label:"🌍 월드 레이드",tab:"raid",color:"#ffb454"}
 ];
 function spawnPlaza(){S.mons=[];S.tele=[];S.boss=null;S.projs=[];S.bossActive=false;S.bossWarn=0;S.stageKills=0;S.bossNotified=false}
 function applyLoc(force){
+ if(!force&&(S.loc==="pvp"||S.loc==="raid"))return; /* 서버 동기화가 아레나에서 끌어내지 않도록 */
  const key=data.loc==="plaza"?"plaza":"field:"+data.stage;
  if(!force&&key===locKey)return;
  locKey=key;S.clearTimer=0;S.vx=0;S.vy=0;S.dash=null;S.roll=null;S.projs=[];S.aggro=false;clearStatus();
@@ -1317,6 +1320,8 @@ function applyLoc(force){
  else{S.loc="field";spawnStage();S.px=W/2;S.py=H/2}
 }
 function travel(loc,stage,force){
+ if(S.loc==="pvp"&&PVP.on&&S.time-PVP.combat<4){toast("전투 중에는 나갈 수 없어요. (마지막 교전 후 4초)");return}
+ PVP.on=false;
  if(loc==="plaza")data.loc="plaza";
  else{
   const n=Math.max(1,Math.floor(stage||data.stage));
@@ -1803,7 +1808,7 @@ function drawPulls(){
 let hpIdle=0,hpLast=100;
 function updHpRegen(dt){
  if(S.status&&S.status.poison>0){hpIdle=0;hpLast=data.hp;return}
- if(data.hp<=0||data.hp>=100||S.loc==="plaza"){hpIdle=0;hpLast=data.hp;return}
+ if(data.hp<=0||data.hp>=100||S.loc==="plaza"||S.loc==="pvp"||S.loc==="raid"){hpIdle=0;hpLast=data.hp;return}
  if(data.hp<hpLast)hpIdle=0;
  hpLast=data.hp;hpIdle+=dt;
  if(hpIdle>=5){data.hp=Math.min(100,data.hp+10*dt);hpLast=data.hp}
@@ -2193,7 +2198,7 @@ function drawBossWarn(){
  ctx.fillStyle="#ffd6ff";ctx.fillText("⚠ 보스 등장 "+Math.ceil(S.bossWarn)+"초 전",bp.x,bp.y-80);
  ctx.textAlign="left";
 }
-const allTargets=()=>S.boss?[...S.mons,S.boss]:[...S.mons];
+const allTargets=()=>S.loc==="raid"?(RT.alive?[RT]:[]):S.loc==="pvp"?pvpTargets():(S.boss?[...S.mons,S.boss]:[...S.mons]);
 
 /* ── 사운드 ── */
 function ensureAudio(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}catch{}}
@@ -2229,6 +2234,8 @@ function nearestTarget(maxD){
 }
 function hitMon(m,dmg,crit){
  if(!m.alive)return;
+ if(m.pvpId){pvpHit(m,dmg,crit);return}
+ if(m.raidId){raidHit(m,dmg,crit);return}
  m.hp-=dmg;m.hit=0.12;
   if(data.weapon==="enchant"&&data.essence!=="none"){const e=data.essence;if(e==="fire")igniteMon(m,Math.max(1,Math.round(dmg*0.18)));else if(e==="ice")slowMon(m);else if(e==="lightning"){for(const other of allTargets()){if(other!==m&&other.alive&&Math.hypot(other.x-m.x,other.y-m.y)<95){other.hp-=Math.max(1,Math.round(dmg*0.22));other.hit=0.08;addText(other.x,other.y-20,"⚡"+Math.round(dmg*0.22),"#ffe66d");if(other.hp<=0)killMon(other)}}}else if(e==="holy"&&m.type==="boss"){m.hp-=Math.round(dmg*0.25)}}
  const a=Math.atan2(m.y-S.py,m.x-S.px);m.kx=Math.cos(a)*160;m.ky=Math.sin(a)*160;
@@ -2397,6 +2404,7 @@ function potion(){
  if(!S.running||data.hp<=0)return;
  if((data.potions||0)<1){toast("보유한 물약이 없어요. 상점에서 구매하세요.");return}
  if(data.hp>=100){toast("HP가 이미 가득해요.");return}
+ if(S.loc==="pvp"){if(S.time<PVP.potCd){toast("PvP에서는 물약을 8초에 한 번만 쓸 수 있어요.");return}PVP.potCd=S.time+8}
  data.potions--;data.potionsUsed++;
  data.hp=Math.min(100,data.hp+45);
  addText(S.px,S.py-40,"+45","#6ee7b7");sfx("heal");
@@ -2442,6 +2450,7 @@ function hurt(n,stat){
  data.hp-=n;S.invuln=0.6;S.flash=0.2;S.shake=0.3;
  addText(S.px,S.py-40,"-"+n,"#ff657a");sfx("hurt");
  if(data.hp<=0){
+  if(S.loc==="raid"){raidDie();save();return}
   data.gold=Math.floor(data.gold/2);data.hp=100;clearStatus();
   S.px=W/2;S.py=H/2;S.vx=0;S.vy=0;S.dash=null;S.invuln=2;
   toast("게임 오버! 자동 부활했습니다. 골드가 절반으로 줄었습니다.");
@@ -2503,6 +2512,7 @@ function updTele(dt){
  S.tele=S.tele.filter(z=>!(z.done&&z.flash<=0));
 }
 function updateMon(m,dt){
+ if(m.pvpId||m.raidId)return;
  if(!m.alive){
   if(m.respawn&&S.time>=m.respawn){m.alive=true;m.hp=m.max;m.x=m.hx;m.y=m.hy;m.respawn=0;m.aggro=false;m.burn=null;m.slowT=0}
   return;
@@ -2543,7 +2553,7 @@ function update(dt){
  S.cd1=Math.max(0,S.cd1-dt);S.cd2=Math.max(0,S.cd2-dt);S.rollCd=Math.max(0,S.rollCd-dt);
  for(const a of S.after)a.t-=dt;
  S.after=S.after.filter(a=>a.t>0);
- netTick(dt);
+ netTick(dt);raidTick(dt);
  if(S.swing){S.swing.t+=dt;if(S.swing.t>=S.swing.dur)S.swing=null}
  if(S.ring){S.ring.t+=dt;if(S.ring.t>0.35)S.ring=null}
  for(const p of S.parts){
@@ -2651,7 +2661,7 @@ function shadowAt(x,y,rx,ry){
  ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
 }
 function drawMon(m){
- if(!m.alive)return;
+ if(!m.alive||m.pvpId||m.raidId)return;
  const sp=SPR[SPRITE_OF[m.type]];
  const frame=Math.floor(S.time*(m.type==="boss"?2:4)+m.hx*0.1)%2;
  const flip=S.px<m.x?-1:1;
@@ -2681,7 +2691,7 @@ function draw(){
  /* 카메라: 플레이어를 따라가며 맵 가장자리에서 멈춤 */
  const camX=clamp(S.px-VW/2,0,Math.max(0,W-VW)),camY=clamp(S.py-VH/2,0,Math.max(0,H-VH));
  ctx.translate(-Math.round(camX),-Math.round(camY));
- {const bgi=S.loc==="plaza"?PLAZA_BG:st.idx;
+ {const bgi=(S.loc==="plaza"||S.loc==="pvp"||S.loc==="raid")?PLAZA_BG:st.idx;
   if(W===VW&&H===VH)ctx.drawImage(BG[bgi],0,0,W,H);
   else{
    const tw=784,th=584; /* 타일 테두리(2px)를 뺀 안쪽 196x146 × 4배 */
@@ -2692,14 +2702,14 @@ function draw(){
     }}
    ctx.fillStyle=BGW[bgi];ctx.fillRect(0,0,W,8);ctx.fillRect(0,H-8,W,8);ctx.fillRect(0,0,8,H);ctx.fillRect(W-8,0,8,H);
   }}
- if(S.loc==="plaza")drawPlaza();
+ if(S.loc==="plaza")drawPlaza();else if(S.loc==="pvp")drawPvpArena();else if(S.loc==="raid")drawRaidArena();
  if(S.loc!=="plaza"&&safeOff()){
   ctx.strokeStyle="rgba(255,101,122,0.35)";ctx.lineWidth=2;ctx.setLineDash([4,8]);
   ctx.beginPath();ctx.arc(SAFE.x,SAFE.y,SAFE.r,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle="rgba(255,101,122,0.6)";ctx.font="bold 11px system-ui";ctx.textAlign="center";
   ctx.fillText("안전구역 해제",SAFE.x,SAFE.y-SAFE.r-6);ctx.textAlign="left";
  }
- if(S.loc!=="plaza"&&!safeOff()){const pulse=0.5+0.5*Math.sin(S.time*2);
+ if(S.loc!=="plaza"&&S.loc!=="pvp"&&S.loc!=="raid"&&!safeOff()){const pulse=0.5+0.5*Math.sin(S.time*2);
   ctx.fillStyle="rgba(110,231,183,"+(0.10+0.05*pulse)+")";
   ctx.beginPath();ctx.arc(SAFE.x,SAFE.y,SAFE.r,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle="rgba(110,231,183,0.75)";ctx.lineWidth=2;ctx.setLineDash([8,6]);ctx.stroke();ctx.setLineDash([]);
@@ -2839,7 +2849,7 @@ function hud(){
   if(ss){ss.style.display=PV.on?"":"none";set("sgShield",Math.ceil(PV.shield));const sb=$("sgShieldBar");if(sb)sb.style.width=Math.min(100,PV.shield/PV.maxShield*100)+"%"}}
  set("sgGold",data.gold);
  set("sgWeapon",weapons[data.weapon].name);
- set("sgStage",S.loc==="plaza"?"🏛 광장":data.stage+" · "+stageInfo().name+" (최대 "+data.maxStage+")");
+ set("sgStage",S.loc==="plaza"?"🏛 광장":S.loc==="raid"?"🌍 월드 레이드":S.loc==="pvp"?"⚔ PvP 아레나 · "+pvpData.rating+"점":data.stage+" · "+stageInfo().name+" (최대 "+data.maxStage+")");
  set("sgPlaza",S.loc==="plaza"?"⚔️ 스테이지 "+data.stage:"🏛 광장");
  set("sgPotion","🧪\n"+(data.potions||0));
  enforceSwords();
@@ -2909,7 +2919,7 @@ function renderView(){
   h=row("철 검","철 광석 5개 + 몬스터 핵 2개 + 50G"+(data.owned.includes("iron")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:iron",label:"조합"},data.mats.iron<5||data.mats.core<2||data.gold<50)
    +row("화염 검","철 검 보유 + 화염 조각 5개 + 핵 3개 + 100G"+(data.owned.includes("flame")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:flame",label:"조합"},!data.owned.includes("iron")||data.mats.flame<5||data.mats.core<3||data.gold<100)
    +row("장검","철 검 보유 + 철 광석 15개 + 핵 6개 + 200G"+(data.owned.includes("long")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:long",label:"조합"},!data.owned.includes("iron")||data.mats.iron<15||data.mats.core<6||data.gold<200)
-   +row("인챈트 소드","장검 1자루 + 몬스터 핵 100개 + 철 광석 100개 · 공격력 40 (장검보다 낮음), 공속은 장검과 동일"+(data.owned.includes("enchant")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:enchant",label:"조합"},!data.owned.includes("long")||data.mats.core<100||data.mats.iron<100)
+   +row("인챈트 소드","장검 1자루 + 몬스터 핵 100개 + 철 광석 100개 · 공격력 40, 공격 속도는 장검과 동일"+(data.owned.includes("enchant")?" · 이미 보유 중 → 중복 +1 (강화 재료)":""),{action:"craft:enchant",label:"조합"},!data.owned.includes("long")||data.mats.core<100||data.mats.iron<100)
     +row("월광 검","화염 검 +5 1자루(소모) + 달빛 가루 50개"+(data.owned.includes("moon")?" · 이미 보유 중 → 중복 +1 (강화 재료)":"")+` · 보유 +5 화염 검 ${(data.stock&&data.stock.flame&&data.stock.flame[5])||0}자루`,{action:"craft:moon",label:"조합"},!(data.stock&&data.stock.flame&&data.stock.flame[5]>0)||data.mats.moon<50)
     +`<h3 style="margin:18px 0 8px">에센스 인챈트</h3><p class="sg-note">인챈트 소드를 장착하고 보유한 에센스를 선택하세요. 에센스는 속성별 월드 보스 처치 보상으로 획득하도록 설계되어 있으며, 월드 보스는 아직 미구현입니다.</p>`
     +row("현재 속성",data.essence==="none"?"에센스 미장착":ESSENCES[data.essence].name+" · "+ESSENCES[data.essence].desc,{action:"essence:none",label:"해제"},data.essence==="none")
@@ -2928,14 +2938,14 @@ function renderView(){
   if(rankRows===null)h=`<p class="sg-note">불러오는 중...</p>`;
   else h=rankRows.length?rankRows.map((r,i)=>`<div class="sg-row"><div><b>${i+1}. ${esc(r.nickname)}</b><div class="sg-note">Lv ${r.best_level} · 보스 ${r.bosses} · 처치 ${r.kills}</div></div></div>`).join(""):`<p class="sg-note">아직 기록이 없습니다. 보스를 처치해 보세요.</p>`;
  }
- if(tab==="codex")h=codexHtml();else if(tab==="admintools")h=adminToolsHtml();else if(tab==="stage")h=stageHtml();
+ if(tab==="codex")h=codexHtml();else if(tab==="admintools")h=adminToolsHtml();else if(tab==="stage")h=stageHtml();else if(tab==="pvp")h=pvpHtml();else if(tab==="raid")h=raidHtml();
  el.innerHTML=h;
 }
 function renderIfOpen(){if(S.running)renderView()}
 function setTab(t){
  tab=t;
  document.querySelectorAll("#sibolGamePanel [data-sgtab]").forEach(x=>x.classList.toggle("active",x.dataset.sgtab===t));
- if(t==="ranking")loadRank();
+ if(t==="ranking")loadRank();if(t==="pvp")loadPvpRank();
  renderView();
 }
 
@@ -2947,6 +2957,8 @@ function action(a){
  if(type==="inv"){invSel=(!k||invSel===k)?null:k;renderView();return}
  if(type==="equip"){if(data.owned.includes(k)&&(k!=="judge"||judgeAllowed())){data.weapon=k;toast(weapons[k].name+" 장착")}}
  else if(type==="tool"){adminTool(k)}
+ else if(type==="pvp"){pvpAction(k)}
+ else if(type==="raid"){raidAction(k)}
  else if(type==="go"){
   if(k==="plaza")travel("plaza");
   else{const n=Number(k);if(Number.isInteger(n)&&n>=1&&(n<=data.maxStage||isAdmin))travel("field",n);else toast("아직 해금되지 않은 스테이지예요.")}
@@ -3168,7 +3180,7 @@ async function netConnect(){
   if(!net||!payload||payload.id===net.id)return;
   let o=net.others.get(payload.id);
   if(!o){o={x:payload.x,y:payload.y};net.others.set(payload.id,o)}
-  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,adm:!!payload.adm,loc:payload.loc||"field",stage:Number(payload.stage)||1,sh:Number(payload.sh)||0,seen:performance.now()});
+  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,adm:!!payload.adm,loc:payload.loc||"field",stage:Number(payload.stage)||1,sh:Number(payload.sh)||0,rt:Number(payload.rt)||1000,iv:!!payload.iv,seen:performance.now()});
  });
  ch.on("broadcast",{event:"swing"},({payload})=>{
   if(!net||!payload)return;
@@ -3177,13 +3189,16 @@ async function netConnect(){
  });
  ch.on("presence",{event:"sync"},()=>{if(net)net.count=Object.keys(ch.presenceState()).length});
  ch.on("presence",{event:"leave"},({key})=>{if(net)net.others.delete(key)});
+ ch.on("broadcast",{event:"pvphit"},({payload})=>pvpOnHit(payload));
+ ch.on("broadcast",{event:"pvpkill"},({payload})=>pvpOnKill(payload));
+ ch.on("broadcast",{event:"raid"},({payload})=>raidOnMsg(payload));
  ch.subscribe(async st=>{if(st==="SUBSCRIBED"&&net)await ch.track({nick})});
 }
 function netLeave(){if(net){try{net.ch.unsubscribe()}catch{}net=null}}
 function netTick(dt){
  if(!net)return;
  S.netT+=dt;if(S.netT<0.1)return;S.netT=0;
- net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),sh:Math.round(PV.shield),lvl:data.level,team:net.team,adm:judgeOn(),loc:S.loc,stage:data.stage}});
+ net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),sh:Math.round(PV.shield),lvl:data.level,team:net.team,adm:judgeOn(),loc:S.loc,stage:data.stage,rt:pvpData.rating,iv:S.invuln>0}});
 }
 function updateRemotes(dt){
  if(!net)return;
@@ -3211,7 +3226,7 @@ function drawRemotes(){
  if(!net)return;
  for(const o of net.others.values()){
   if((o.loc||"field")!==S.loc)continue;
-  if(S.loc!=="plaza"&&Number(o.stage)!==Number(data.stage))continue;
+  if(S.loc==="field"&&Number(o.stage)!==Number(data.stage))continue;
   const sp=REMOTE[(o.team||0)%TEAMS.length];
   const pf=o.run?Math.floor(S.time*8)%4:4;
   shadowAt(o.x,o.y+PR*0.9,PR*1.1,PR*0.45);
@@ -3221,13 +3236,271 @@ function drawRemotes(){
    ctx.strokeStyle="rgba(255,255,255,"+(1-p*0.8)+")";ctx.lineWidth=3;
    ctx.beginPath();ctx.arc(o.x,o.y,36,a-0.5,a+0.5);ctx.stroke();
   }
-  const name=(o.adm?"👑 ":"")+(o.nick||"회원");
+  const name=(S.loc==="pvp"?"⚔ ":"")+(o.adm?"👑 ":"")+(o.nick||"회원")+(S.loc==="pvp"?" ("+(o.rt||1000)+")":"");
   ctx.textAlign="center";ctx.font="bold 12px system-ui";
   ctx.fillStyle="#000000";ctx.fillText(name,o.x+1,o.y-66);
   ctx.fillStyle="#ffffff";ctx.fillText(name,o.x,o.y-67);
   ctx.textAlign="left";
   drawHpBar(o.x,o.y-59,o.hp,o.sh||0);
  }
+}
+
+
+/* ══════════ PvP 아레나 ══════════
+   · 광장의 "⚔ PvP장"에서 입장 · 아레나(loc="pvp")에서는 안전구역이 없고 다른 플레이어가 모두 적
+   · 피해는 공격자가 계산해 broadcast(pvphit) → 피해자 클라이언트가 직접 적용 (HP는 피해자가 권위)
+   · 검 공격력은 PvP용으로 압축(√) 후 상한 28 → 강한 검도 최소 4방 이상 필요, 약한 검도 한 번에 4 이상
+   · 처치 시 Elo 방식 레이팅 · 골드 보상 · 연속 처치 보너스 */
+const PVP_KEY="sibol-pvp-v1";
+let pvpData={rating:1000,wins:0,losses:0,streak:0,best:0},pvpRows=null,pvpPushT=0;
+try{const r=JSON.parse(localStorage.getItem(PVP_KEY)||"null");if(r&&typeof r==="object")for(const k of Object.keys(pvpData)){const n=Math.floor(Number(r[k]));if(Number.isFinite(n)&&n>=0)pvpData[k]=n}}catch{}
+const PVP={on:false,feed:[],potCd:0,combat:-99,seen:new Set(),vk:{},lastBy:null};
+const PVP_DMG_MAX=28,PVP_K=24;
+const pvpScale=d=>Math.max(4,Math.min(PVP_DMG_MAX,Math.round(Math.sqrt(Math.max(0,Number(d)||0))*2.2)));
+function pvpSave(){
+ try{localStorage.setItem(PVP_KEY,JSON.stringify(pvpData))}catch{}
+ const now=Date.now();if(now-pvpPushT<4000)return;pvpPushT=now;
+ (async()=>{try{
+  const db=window.__sibolDb;if(!db)return;
+  const {data:a}=await db.auth.getUser();const u=a&&a.user;if(!u)return;
+  if(!profileName){const {data:p}=await db.from("profiles").select("nickname").eq("id",u.id).maybeSingle();profileName=(p&&p.nickname)||"회원"}
+  await db.from("pvp_scores").upsert({user_id:u.id,nickname:profileName,rating:pvpData.rating,wins:pvpData.wins,losses:pvpData.losses,best_streak:pvpData.best,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+ }catch{}})();
+}
+async function loadPvpRank(){
+ pvpRows=null;renderIfOpen();
+ let rows=[];
+ try{const db=window.__sibolDb;if(db){const {data:r,error}=await db.from("pvp_scores").select("nickname,rating,wins,losses,best_streak").order("rating",{ascending:false}).limit(20);if(!error)rows=r||[]}}catch{}
+ pvpRows=rows;renderIfOpen();
+}
+function pvpFeed(text){PVP.feed.push({text,until:S.time+6});if(PVP.feed.length>5)PVP.feed.shift()}
+function pvpTargets(){
+ const out=[];if(!net)return out;
+ const now=performance.now();
+ for(const [k,o] of net.others){
+  if(o.loc!=="pvp"||now-o.seen>3000)continue;
+  o.pvpId=k;o.r=PR;o.max=100;o.type="pvp";o.hx=o.x;o.hy=o.y;
+  if(o.kx===undefined){o.kx=0;o.ky=0}
+  o.alive=(!Number.isFinite(o.hp)||o.hp>0)&&!o.iv;
+  out.push(o);
+ }
+ return out;
+}
+/* 공격자 쪽: 맞았다고 판단되면 피해량을 압축해 상대에게 전송 */
+function pvpHit(o,dmg,crit){
+ if(!net||S.loc!=="pvp"||!o.pvpId)return;
+ const d=pvpScale(dmg);
+ net.ch.send({type:"broadcast",event:"pvphit",payload:{from:net.id,fn:net.nick,to:o.pvpId,d,c:crit?1:0,fr:pvpData.rating}});
+ PVP.combat=S.time;
+ o.hp=Math.max(0,(Number.isFinite(o.hp)?o.hp:100)-d); /* 예측 표시 · 다음 위치 패킷에서 실제 HP로 보정 */
+ const a=Math.atan2(o.y-S.py,o.x-S.px);o.kx=Math.cos(a)*160;o.ky=Math.sin(a)*160;
+ addText(o.x,o.y-o.r-30,String(d),crit?"#ffd166":"#ffffff");
+ sfx("hit");burst(o.x,o.y,SWORD_HIT[data.weapon]||"#ffffff",5);
+}
+/* 피해자 쪽: 피해 적용 (무적/대쉬 중이면 회피) */
+function pvpOnHit(p){
+ if(!net||!p||p.to!==net.id||!S.running||S.loc!=="pvp"||data.hp<=0)return;
+ const o=net.others.get(p.from);
+ if(!o||o.loc!=="pvp")return;
+ const t=performance.now();
+ if(t-(o.lastHit||0)<80)return;o.lastHit=t;
+ if(Math.hypot(o.x-S.px,o.y-S.py)>340)return; /* 말도 안 되는 거리의 공격 무시 */
+ if(S.invuln>0||S.chainSeq){addText(S.px,S.py-40,"회피!","#9ad8ff");return}
+ const n=Math.max(1,Math.min(PVP_DMG_MAX,Math.floor(Number(p.d))||0));
+ data.hp-=n;S.invuln=0.25;S.flash=0.2;S.shake=0.3;PVP.combat=S.time;
+ addText(S.px,S.py-40,"-"+n,"#ff657a");sfx("hurt");
+ PVP.lastBy={id:p.from,nick:String(p.fn||o.nick||"상대").slice(0,20),rt:Number(p.fr)||o.rt||1000};
+ if(data.hp<=0)pvpDie();
+}
+function pvpDie(){
+ const k=PVP.lastBy||{nick:"상대",rt:1000};
+ const E=1/(1+Math.pow(10,((k.rt||1000)-pvpData.rating)/400));
+ const loss=Math.min(pvpData.rating,Math.max(3,Math.round(PVP_K*E)));
+ const prev=pvpData.rating;
+ pvpData.rating-=loss;pvpData.losses++;pvpData.streak=0;
+ if(net)net.ch.send({type:"broadcast",event:"pvpkill",payload:{id:Math.random().toString(36).slice(2),k:k.id,kn:k.nick,v:net.id,vn:net.nick,vr:prev}});
+ pvpFeed(k.nick+" ⚔ "+(net?net.nick:"나")+" 처치");
+ toast("💀 "+k.nick+"에게 패배 · 레이팅 -"+loss);
+ data.hp=100;clearStatus();pvpSpawn();PVP.lastBy=null;
+ pvpSave();save();
+}
+/* 모든 아레나 참가자: 킬 로그 / 처치자: 보상 */
+function pvpOnKill(p){
+ if(!net||!p||!p.id||PVP.seen.has(p.id))return;
+ PVP.seen.add(p.id);if(PVP.seen.size>200)PVP.seen=new Set([...PVP.seen].slice(-100));
+ if(!S.running||S.loc!=="pvp")return;
+ if(p.v!==net.id)pvpFeed(String(p.kn||"?").slice(0,20)+" ⚔ "+String(p.vn||"?").slice(0,20)+" 처치");
+ if(p.k!==net.id||p.v===net.id)return;
+ const now=Date.now(),last=PVP.vk[p.v]||0;PVP.vk[p.v]=now;
+ pvpData.wins++;pvpData.streak++;pvpData.best=Math.max(pvpData.best,pvpData.streak);
+ if(now-last<60000){toast("⚔ "+String(p.vn||"상대").slice(0,20)+" 처치! (같은 상대 연속 처치는 보상 없음)");pvpSave();return}
+ const E=1/(1+Math.pow(10,((Number(p.vr)||1000)-pvpData.rating)/400));
+ const gain=Math.max(3,Math.round(PVP_K*(1-E))),gold=40+Math.min(5,pvpData.streak-1)*10;
+ pvpData.rating+=gain;data.gold+=gold;data.hp=Math.min(100,data.hp+15);
+ addText(S.px,S.py-54,"+"+gold+"G · +"+gain+"점","#ffd166");sfx("kill");
+ toast("⚔ "+String(p.vn||"상대").slice(0,20)+" 처치! "+(pvpData.streak>1?pvpData.streak+"연속 · ":"")+"+"+gold+"G · 레이팅 +"+gain);
+ pvpSave();save();
+}
+function pvpSpawn(){
+ const a=Math.random()*Math.PI*2;
+ S.px=400+Math.cos(a)*260;S.py=300+Math.sin(a)*190;
+ S.vx=0;S.vy=0;S.dash=null;S.roll=null;S.projs=[];S.invuln=3;S.sanct=null;
+}
+function enterPvp(){
+ if(!S.running||S.loc==="pvp")return;
+ if(!net){toast("접속 중이에요. 잠시 후 다시 시도해 주세요.");return}
+ data.loc="plaza"; /* 저장 위치는 광장 → 새로고침하면 광장에서 시작 */
+ locKey="pvp";S.clearTimer=0;S.aggro=false;S.sanct=null;S.pulls=null;S.chain=null;clearStatus();pvClear();
+ setWorld(true);S.loc="pvp";spawnPlaza();pvpSpawn();
+ data.hp=100;PVP.on=true;PVP.combat=-99;PVP.potCd=0;PVP.feed=[];PVP.lastBy=null;
+ toast("⚔ PvP 아레나 입장! 아레나의 다른 플레이어는 모두 적이에요.");
+ save();hud();renderIfOpen();
+}
+function pvpAction(k){if(k==="enter")enterPvp();else if(k==="leave")travel("plaza")}
+function pvpHtml(){
+ const here=S.loc==="pvp",now=performance.now();
+ const inArena=net?[...net.others.values()].filter(o=>o.loc==="pvp"&&now-o.seen<3000):[];
+ const g=pvpData.wins+pvpData.losses,wr=g?Math.round(pvpData.wins/g*100):0;
+ let h=`<div class="sg-row"><div><b>⚔ PvP 아레나</b><div class="sg-note">모든 플레이어가 적이에요 · 안전구역 없음 · 입장 시 HP 100 · 부활 후 3초 무적 · 물약 8초 쿨타임 · 전투 중(4초) 퇴장 불가</div></div><button class="primary" data-action="pvp:${here?"leave":"enter"}">${here?"광장으로 나가기":"입장"}</button></div>`;
+ h+=`<div class="sg-row"><div><b>내 전적</b><div class="sg-note">레이팅 <b>${pvpData.rating}</b> · ${pvpData.wins}승 ${pvpData.losses}패 (승률 ${wr}%) · 현재 ${pvpData.streak}연속 · 최고 ${pvpData.best}연속</div></div></div>`;
+ h+=`<div class="sg-row"><div><b>보상 · 규칙</b><div class="sg-note">처치 시 40G(+연속 처치마다 +10G, 최대 +50G)와 Elo 레이팅 · 같은 상대를 60초 안에 다시 처치하면 보상 없음 · 피해량은 검 공격력을 압축해 최소 4 ~ 최대 28로 적용돼요.</div></div></div>`;
+ h+=`<h3 style="margin:16px 0 8px">현재 아레나 (${inArena.length+(here?1:0)}명)</h3>`;
+ h+=(inArena.length||here)?[...(here?[{nick:(net&&net.nick)||"나",rt:pvpData.rating,hp:data.hp,me:1}]:[]),...inArena].map(o=>`<div class="sg-row"><div><b>${esc(o.nick||"회원")}${o.me?" (나)":""}</b><div class="sg-note">레이팅 ${o.rt||1000} · HP ${Math.max(0,Math.ceil(o.hp==null?100:o.hp))}</div></div></div>`).join(""):`<p class="sg-note">지금 아레나에 아무도 없어요.</p>`;
+ h+=`<h3 style="margin:16px 0 8px">PvP 랭킹</h3>`;
+ if(pvpRows===null)h+=`<p class="sg-note">불러오는 중...</p>`;
+ else h+=pvpRows.length?pvpRows.map((r,i)=>`<div class="sg-row"><div><b>${i+1}. ${esc(r.nickname)}</b><div class="sg-note">레이팅 ${r.rating} · ${r.wins}승 ${r.losses}패 · 최고 ${r.best_streak}연속</div></div></div>`).join(""):`<p class="sg-note">랭킹 기록이 아직 없어요. (서버에 pvp_scores 테이블이 필요해요)</p>`;
+ return h;
+}
+function drawPvpArena(){
+ const t=S.time;
+ ctx.fillStyle="rgba(60,0,16,0.38)";ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle="rgba(255,101,122,"+(0.55+0.2*Math.sin(t*3))+")";ctx.lineWidth=4;ctx.strokeRect(12,12,W-24,H-24);
+ ctx.strokeStyle="rgba(255,255,255,0.14)";ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(W/2,H/2,120,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.arc(W/2,H/2,28,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(W/2-170,H/2);ctx.lineTo(W/2-120,H/2);ctx.moveTo(W/2+120,H/2);ctx.lineTo(W/2+170,H/2);ctx.moveTo(W/2,H/2-170);ctx.lineTo(W/2,H/2-120);ctx.moveTo(W/2,H/2+120);ctx.lineTo(W/2,H/2+170);ctx.stroke();
+ ctx.textAlign="center";ctx.font="bold 13px system-ui";ctx.fillStyle="rgba(255,150,165,0.9)";
+ ctx.fillText("⚔ PvP 아레나",W/2,32);
+ ctx.textAlign="left";ctx.font="bold 12px system-ui";
+ PVP.feed=PVP.feed.filter(f=>f.until>S.time);
+ PVP.feed.forEach((f,i)=>{ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(18,46+i*18,ctx.measureText(f.text).width+12,16);ctx.fillStyle="#ffd6dc";ctx.fillText(f.text,24,58+i*18)});
+}
+
+/* ── 월드 레이드: 접속자 전원이 같은 시간표의 보스를 함께 공격 (Realtime 브로드캐스트로 피해량 합산) ── */
+const RAID_LEN=900,RAID_ON=600,RAID_HP=200000,RAID_CAP=3000,RAID_MIN=3000,RAID_KEY="sibol-raid-v1";
+const RAID_ATTR=["fire","ice","lightning","nature","holy","void"];
+const RAID_NAME={fire:"불꽃의 군주",ice:"서리 거인",lightning:"뇌전의 용",nature:"고대 수호수",holy:"타락한 대천사",void:"공허의 포식자"};
+const RT={alive:false,x:400,y:230,r:34,hp:RAID_HP,max:RAID_HP,type:"raid",raidId:1,hit:0,kx:0,ky:0};
+const RD={c:-1,my:0,pl:new Map(),zones:[],k:-1,won:false,sendT:0,uiT:0};
+let raidClaim=0;try{raidClaim=Number(localStorage.getItem(RAID_KEY))||0}catch{}
+const fmtT=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+function raidInfo(){const now=Date.now(),c=Math.floor(now/(RAID_LEN*1000)),el=(now-c*RAID_LEN*1000)/1000;return{c,el,on:el<RAID_ON,left:RAID_ON-el,next:RAID_LEN-el,attr:RAID_ATTR[c%RAID_ATTR.length]}}
+function raidTotal(){let t=RD.my;for(const v of RD.pl.values())t+=v.d;return t}
+function raidBoard(){const a=[{nick:(net&&net.nick)||"나",d:RD.my,me:1}];for(const v of RD.pl.values())a.push(v);return a.filter(x=>x.d>0).sort((p,q)=>q.d-p.d)}
+function raidOnMsg(p){
+ if(!p||!net||!p.id||p.id===net.id||Number(p.c)!==RD.c)return;
+ const I=raidInfo();let d=Math.floor(Number(p.d));if(!(d>=0))return;
+ d=Math.min(d,12000*(I.el+5)); /* 비정상적으로 큰 값 방어 */
+ const pr=RD.pl.get(p.id);if(!pr||d>pr.d)RD.pl.set(p.id,{d,nick:String(p.nick||"회원").slice(0,20)});
+}
+function raidHit(m,dmg,crit){
+ const I=raidInfo();if(!I.on||RD.won||S.loc!=="raid")return;
+ const d=Math.max(1,Math.min(RAID_CAP,Math.round(dmg)));
+ RD.my+=d;m.hit=0.12;
+ addText(m.x+(Math.random()-0.5)*50,m.y-m.r-22,String(d),crit?"#ffd166":"#ffffff");
+ sfx("hit");burst(m.x+(Math.random()-0.5)*30,m.y,SWORD_HIT[data.weapon]||"#ffffff",4);
+}
+function raidDie(){
+ data.hp=100;clearStatus();S.px=W/2;S.py=H-70;S.vx=0;S.vy=0;S.dash=null;S.invuln=3;
+ toast("💀 쓰러졌어요! 골드 손실 없이 부활했어요. (피해 기록 유지)");
+}
+function raidWin(I){
+ burst(RT.x,RT.y,ESSENCES[I.attr].color,30);
+ if(raidClaim===I.c)return;
+ if(RD.my<RAID_MIN){toast("🌍 레이드 성공! 하지만 기여도가 부족해 보상이 없어요. (최소 "+RAID_MIN+" 피해)");return}
+ raidClaim=I.c;try{localStorage.setItem(RAID_KEY,String(I.c))}catch{}
+ const gold=300+Math.min(700,Math.round(RD.my/200));
+ data.gold+=gold;data.xp+=100;levelCheck();
+ grantWorldBossEssence(I.attr);
+ toast("🌍 "+RAID_NAME[I.attr]+" 토벌 성공! 골드 +"+gold+" · "+ESSENCES[I.attr].name+" 획득");
+ save();
+}
+function raidSpawnZones(I,k){
+ const r=rng(I.c*977+k*131+7);
+ if(k%4===3){RD.zones.push({x:RT.x,y:RT.y,r:330,ri:90,t:0,dur:1.6,dmg:30,done:false,flash:0.25});return}
+ for(let i=0;i<3;i++)RD.zones.push({x:60+r()*(W-120),y:60+r()*(H-120),r:75,ri:0,t:-i*0.35,dur:1.3,dmg:22,done:false,flash:0.25});
+}
+function raidTick(dt){
+ const I=raidInfo();
+ if(RD.c!==I.c){RD.c=I.c;RD.my=0;RD.pl.clear();RD.zones=[];RD.k=-1;RD.won=false}
+ const tot=raidTotal();
+ RT.max=RAID_HP;RT.hp=Math.max(0,RAID_HP-tot);RT.hit=Math.max(0,RT.hit-dt);
+ RT.alive=I.on&&!RD.won&&S.loc==="raid";
+ if(!RD.won&&I.on&&tot>=RAID_HP){RD.won=true;raidWin(I)}
+ if(net&&RD.my>0){RD.sendT-=dt;if(RD.sendT<=0){RD.sendT=1.5;net.ch.send({type:"broadcast",event:"raid",payload:{id:net.id,nick:net.nick,c:I.c,d:RD.my}})}}
+ if(tab==="raid"&&S.running){RD.uiT-=dt;if(RD.uiT<=0){RD.uiT=1;const el=$("raidLive");if(el)el.innerHTML=raidLiveHtml()}}
+ if(S.loc!=="raid")return;
+ if(RT.alive){const k=Math.floor(I.el/3);if(k>RD.k){RD.k=k;raidSpawnZones(I,k)}}
+ for(const z of RD.zones){
+  z.t+=dt;
+  if(z.done){z.flash-=dt;continue}
+  if(z.t>=z.dur){z.done=true;const d=Math.hypot(S.px-z.x,S.py-z.y);if(d<z.r+PR*0.5&&d>=z.ri)hurt(z.dmg)}
+ }
+ RD.zones=RD.zones.filter(z=>!z.done||z.flash>0);
+}
+function enterRaid(){
+ if(!S.running||S.loc==="raid")return;
+ const I=raidInfo();
+ if(!I.on){toast("지금은 레이드 시간이 아니에요. 다음 레이드까지 "+fmtT(I.next));return}
+ data.loc="plaza";locKey="raid";S.clearTimer=0;S.aggro=false;S.sanct=null;S.pulls=null;S.chain=null;clearStatus();pvClear();
+ setWorld(true);S.loc="raid";spawnPlaza();
+ S.px=W/2;S.py=H-70;S.vx=0;S.vy=0;S.dash=null;S.roll=null;S.projs=[];S.invuln=2;RD.zones=[];RD.k=-1;
+ if(!net)toast("🌍 오프라인 상태예요. 다른 플레이어의 피해는 합산되지 않아요.");
+ else toast("🌍 월드 레이드 입장! 빨간 경고 원을 피하며 보스를 공격하세요.");
+ save();hud();renderIfOpen();
+}
+function raidAction(k){if(k==="enter")enterRaid();else if(k==="leave")travel("plaza")}
+function raidLiveHtml(){
+ const I=raidInfo(),a=ESSENCES[I.attr],tot=raidTotal(),pct=Math.min(100,tot/RAID_HP*100);
+ let h=`<div class="sg-row"><div><b>${a.icon} ${RAID_NAME[I.attr]} <span class="role-badge">${a.name} 속성</span></b><div class="sg-note">${RD.won?"✅ 토벌 완료! 다음 레이드까지 "+fmtT(I.next):I.on?"⏱ 남은 시간 "+fmtT(I.left):"💤 휴식 중 · 다음 레이드까지 "+fmtT(I.next)}</div>`
+  +`<div class="sg-bosstrack" style="margin:6px 0"><span style="width:${(100-pct).toFixed(1)}%"></span></div><div class="sg-note">보스 HP ${fmtHp(Math.max(0,RAID_HP-tot))} / ${fmtHp(RAID_HP)} · 내 피해 <b>${fmtHp(RD.my)}</b>${RD.my>=RAID_MIN?"":" (보상 조건 "+fmtHp(RAID_MIN)+")"}</div></div></div>`;
+ const bd=raidBoard().slice(0,8);
+ h+=`<h3 style="margin:14px 0 8px">피해량 순위</h3>`+(bd.length?bd.map((x,i)=>`<div class="sg-row"><div><b>${i+1}. ${esc(x.nick)}${x.me?" (나)":""}</b><div class="sg-note">${fmtHp(x.d)} 피해</div></div></div>`).join(""):`<p class="sg-note">아직 기록이 없어요.</p>`);
+ return h;
+}
+function raidHtml(){
+ const here=S.loc==="raid";
+ return `<div class="sg-row"><div><b>🌍 월드 레이드</b><div class="sg-note">15분마다 10분간 열려요 · 접속한 모든 플레이어의 피해가 합산돼요 · 보스 속성은 순환(화염→빙결→번개→자연→신성→공허) · 한 번에 최대 ${RAID_CAP} 피해 반영 · 안전구역 없음</div></div><button class="primary" data-action="raid:${here?"leave":"enter"}">${here?"광장으로":"입장"}</button></div>`
+  +`<div class="sg-row"><div><b>보상</b><div class="sg-note">토벌 성공 시 내 피해 ${RAID_MIN} 이상이면 해당 속성 에센스 1개 + 골드 300~1000 + XP 100. 쓰러져도 골드는 줄지 않아요. 보스는 3초마다 경고 원(빨강)을 깔고, 4번째마다 중앙 바깥 전체를 공격해요(보스 바로 옆은 안전).</div></div></div>`
+  +`<div id="raidLive">${raidLiveHtml()}</div>`;
+}
+function drawRaidArena(){
+ const I=raidInfo(),a=ESSENCES[I.attr],t=S.time;
+ ctx.fillStyle="rgba(30,8,50,0.38)";ctx.fillRect(0,0,W,H);
+ ctx.globalAlpha=0.5+0.2*Math.sin(t*3);ctx.strokeStyle=a.color;ctx.lineWidth=4;ctx.strokeRect(12,12,W-24,H-24);ctx.globalAlpha=1;
+ const zp=z=>{ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,Math.PI*2);if(z.ri)ctx.arc(z.x,z.y,z.ri,0,Math.PI*2,true)};
+ for(const z of RD.zones){
+  if(z.t<0)continue;
+  if(z.done){ctx.globalAlpha=Math.max(0,z.flash/0.25)*0.75;ctx.fillStyle="#ff4d5e";zp(z);ctx.fill();ctx.globalAlpha=1;continue}
+  const p=Math.min(1,z.t/z.dur),bl=p>0.8&&Math.floor(t*16)%2===0;
+  ctx.fillStyle="rgba(255,60,80,"+(0.10+0.28*p)+")";zp(z);ctx.fill();
+  ctx.strokeStyle=bl?"#ffffff":"rgba(255,95,105,0.95)";ctx.lineWidth=2.5;zp(z);ctx.stroke();
+ }
+ if(RT.alive||(!I.on&&!RD.won)||RD.won){
+  const g=ctx.createRadialGradient(RT.x,RT.y,6,RT.x,RT.y,RT.r+26);
+  g.addColorStop(0,a.color);g.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.globalAlpha=RT.alive?(0.55+0.2*Math.sin(t*4)):0.2;ctx.fillStyle=g;ctx.beginPath();ctx.arc(RT.x,RT.y,RT.r+26,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.font=(RT.hit>0?72:64)+"px serif";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.globalAlpha=RT.alive?1:0.35;ctx.fillText(a.icon,RT.x,RT.y);ctx.globalAlpha=1;ctx.textBaseline="alphabetic";
+ }
+ ctx.textAlign="center";ctx.font="bold 13px system-ui";
+ const tot=raidTotal(),pct=Math.min(1,tot/RAID_HP);
+ ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(180,22,440,34);
+ ctx.fillStyle="#2a1a2e";ctx.fillRect(190,38,420,10);ctx.fillStyle=a.color;ctx.fillRect(190,38,420*(1-pct),10);
+ ctx.fillStyle="#fff";ctx.fillText(a.icon+" "+RAID_NAME[I.attr]+"  "+fmtHp(Math.max(0,RAID_HP-tot))+" / "+fmtHp(RAID_HP),W/2,34);
+ ctx.textAlign="right";ctx.fillStyle="#ffd6a0";ctx.fillText(RD.won?"토벌 성공!":I.on?"⏱ "+fmtT(I.left):"종료 · 다음 "+fmtT(I.next),W-24,34);
+ ctx.textAlign="left";ctx.font="bold 12px system-ui";
+ raidBoard().slice(0,5).forEach((x,i)=>{const s=(i+1)+". "+x.nick+"  "+fmtHp(x.d);ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(18,70+i*18,ctx.measureText(s).width+12,16);ctx.fillStyle=x.me?"#ffd166":"#ffe9c9";ctx.fillText(s,24,82+i*18)});
 }
 
 /* ── 초기화 / 연결 ── */
