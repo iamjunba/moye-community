@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>볼 — 시볼급 말랑함 v</title>
+<title>볼 — 시볼급 말랑함 v14</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:dark;--bg:#0b0d12;--panel:#131722;--panel2:#191f2d;--line:#272e3e;--text:#edf0f7;--muted:#929bb0;--accent:#8b7cff;--accent2:#b0a6ff;--danger:#ff657a;--good:#6ee7b7}
@@ -1300,12 +1300,13 @@ const ACHIEVEMENTS=[
 ];
 
 /* ── 저장 데이터 ── */
-const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],duplicates:{wood:0,iron:0,flame:0,long:0,scythe:0,vscythe:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,long:0,scythe:0,vscythe:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0,blood:0,ingot:0,steel:0},essences:{fire:0,ice:0,lightning:0,nature:0,holy:0,void:0},essence:"none",tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{wood:true},maxStage:1,loc:"plaza"});
+const defaults=()=>({level:1,xp:0,gold:0,hp:100,weapon:"wood",owned:["wood"],aenh:{},duplicates:{wood:0,iron:0,flame:0,long:0,scythe:0,vscythe:0,moon:0,void:0},enhance:{wood:0,iron:0,flame:0,long:0,scythe:0,vscythe:0,moon:0,void:0},mats:{iron:0,core:0,flame:0,moon:0,blood:0,ingot:0,steel:0},essences:{fire:0,ice:0,lightning:0,nature:0,holy:0,void:0},essence:"none",tickets:0,potions:0,kills:0,bossKills:0,stage:1,skillsUsed:0,potionsUsed:0,lootLog:[],quests:null,achClaimed:{},loans:{},codex:{wood:true},maxStage:1,loc:"plaza"});
 let data;
 try{
  const saved=JSON.parse(localStorage.getItem(SAVE)||"{}");const d=defaults();
  data={...d,...saved,mats:{...d.mats,...saved.mats},essences:{...d.essences,...saved.essences},duplicates:{...d.duplicates,...saved.duplicates},enhance:{...d.enhance,...saved.enhance},lootLog:Array.isArray(saved.lootLog)?saved.lootLog:[],achClaimed:saved.achClaimed||{}};
 }catch{data=defaults()}
+if(!data.aenh||typeof data.aenh!=="object"||Array.isArray(data.aenh))data.aenh={};
 data.maxStage=Math.max(1,Math.floor(Number(data.maxStage)||1),Math.floor(Number(data.stage)||1));
 if(data.loc!=="field"&&data.loc!=="plaza")data.loc="plaza";
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(data))}catch{}pushSave()}
@@ -1804,6 +1805,7 @@ function chTick(dt){
 }
 function useSkill3(){
  if(data.weapon==="enchant")return;
+ if(canBR()){toggleBloodRage();return}
  if(!S.running||data.hp<=0||S.chainSeq||S.pulls)return;
  if(inSafe()){safeMsg();return}
  if(!judgeOn()){toast("스킬 3은 심판의 검 전용이에요.");return}
@@ -1866,6 +1868,7 @@ function mergeSave(saved){
  const d=defaults(),n=(v,f)=>Number.isFinite(Number(v))?Number(v):f;
  const m={...d,...saved,mats:{...d.mats,...(saved.mats||{})},essences:{...d.essences,...(saved.essences||{})},duplicates:{...d.duplicates,...(saved.duplicates||{})},enhance:{...d.enhance,...(saved.enhance||{})},lootLog:Array.isArray(saved.lootLog)?saved.lootLog:[],achClaimed:saved.achClaimed||{}};
  m.owned=Array.isArray(m.owned)?m.owned.filter(k=>weapons[k]):["wood"];
+ {const a=(m.aenh&&typeof m.aenh==="object"&&!Array.isArray(m.aenh))?m.aenh:{},o={};for(const k of Object.keys(weapons)){const v=Math.floor(Number(a[k])||0);if(v>0&&!weapons[k].adminOnly)o[k]=Math.min(AENH_MAX,v)}m.aenh=o}
   if(!m.essences||typeof m.essences!=="object")m.essences={...d.essences};
   if(!["none","fire","ice","lightning","nature","holy","void"].includes(m.essence))m.essence="none";
   for(const k of Object.keys(d.essences))m.essences[k]=Math.max(0,Math.floor(Number(m.essences[k])||0));
@@ -1914,9 +1917,13 @@ async function pullSave(force){
 const xpNeed=()=>30+(data.level-1)*20;
 /* 강화: 같은 검의 "강화 수치가 같은" 2자루를 합치면 +1 한 자루가 돼요 · 최대 +5 · 단계당 기본 공격력의 20~30%(최소 0.8) */
 const ENH_MAX=5;
+/* 관리자 전용 강화: 일반 강화(+5)와 별개로 쌓이는 강화 · 관리자만 수행 가능 · 재료/골드 없음 · 한 단계당 공격력 +50% */
+const AENH_MAX=10,AENH_PCT=50;
+const aenhLv=k=>Math.max(0,Math.min(AENH_MAX,Math.floor(Number(data.aenh&&data.aenh[k])||0)));
+const aenhMul=k=>1+AENH_PCT/100*aenhLv(k);
 const enhLv=k=>Math.min(ENH_MAX,data.enhance[k]||0);
 const atkAt=(k,lv)=>{const b=weapons[k].atk+(weapons[k].adminOnly?0:Math.round(Math.max(0.8,weapons[k].atk*(weapons[k].enh||0.2))*lv));return weapons[k].adminOnly?b:Math.round(b*1.5)};
-const atkOf=k=>atkAt(k,enhLv(k));
+const atkOf=k=>Math.round(atkAt(k,enhLv(k))*aenhMul(k));
 /* 검 보관: data.stock[검][강화수]=자루 수. enhance[k]=가장 높은 강화 수치(장착·공격력 기준), duplicates[k]=전체 자루 수-1 로 항상 동기화 */
 function stockTop(st){let t=0;for(const l in st)if(st[l]>0)t=Math.max(t,Number(l));return t}
 function stockTotal(st){let t=0;for(const l in st)if(st[l]>0)t+=st[l];return t}
@@ -2157,7 +2164,17 @@ function enhanceHtml(){
  }else{
   slot=`<div class="sg-enhslot" data-enh-slot><div class="sg-note" style="text-align:center;margin:0">⬇ 강화할 검을 여기로 드래그하세요<br>(탭해도 선택돼요)<br>강화 수치가 같은 검 2자루를 합치면 +1</div></div>`;
  }
- return slot+`<div class="sg-inv">${groups.map(g=>tile(g,false)).join("")}</div>`;
+ return slot+`<div class="sg-inv">${groups.map(g=>tile(g,false)).join("")}</div>`+aenhHtml();
+}
+function aenhHtml(){
+ if(!isAdmin)return"";
+ const ks=Object.keys(weapons).filter(k=>data.owned.includes(k)&&!weapons[k].adminOnly);
+ let h=`<h3 style="margin:18px 0 8px">👑 관리자 전용 강화</h3><p class="sg-note">관리자만 할 수 있는 별도 강화예요. 일반 강화(+${ENH_MAX})와 따로 쌓이고, 한 단계마다 공격력 +${AENH_PCT}% (최대 ${AENH_MAX}단계) · 재료·골드가 들지 않아요.</p>`;
+ h+=ks.map(k=>{
+  const w=weapons[k],lv=aenhLv(k),col=RARITY_COLOR[w.rarity]||"#929bb0",nx=Math.round(atkAt(k,enhLv(k))*(1+AENH_PCT/100*(lv+1)));
+  return `<div class="sg-row" style="border-left:4px solid ${col};padding-left:10px"><div><b>${esc(w.name)}</b> <span class="role-badge admin">관리자 강화 +${lv}</span><div class="sg-note">공격력 ${atkOf(k)}${lv<AENH_MAX?" → "+nx:" (MAX)"}</div></div><div style="display:flex;gap:6px"><button class="primary" data-action="aenhup:${k}" ${lv>=AENH_MAX?"disabled":""}>강화</button><button data-action="aenhdn:${k}" ${lv<=0?"disabled":""}>−1</button></div></div>`;
+ }).join("");
+ return h||`<p class="sg-note">보유한 검이 없어요.</p>`;
 }
 let invSel=null,tab="inventory",rankRows=null,profileName=null,toastTimer=0,muted=false,audioCtx=null;
 const keys={};
@@ -2398,7 +2415,7 @@ const SWORD_SK={
  iron:{n1:"강타",n2:"돌진",d:"강타(전방 부채꼴 · 강한 넉백) / 돌진"},
  flame:{n1:"화염\n폭발",n2:"불꽃\n돌진",d:"화염 폭발(주변 + 화상) / 불꽃 돌진(화상)"},
  long:{n1:"장검\n휘두르기",n2:"돌진\n베기",d:"장검 휘두르기(넓고 긴 부채꼴 · 높은 데미지) / 돌진 베기(돌진 · 피해)"},
- vscythe:{n1:"피의\n질주",n2:"박쥐떼",d:"피의 질주(돌진하며 범위 내 몹 타격 · 준 피해의 20% 흡혈) / 박쥐떼(ON/OFF · 가장 가까운 몬스터를 표적으로 삼아 범위 75px에 0.5초마다 10 피해) / 패시브 흡혈(준 피해의 10% 회복)"},
+ vscythe:{n1:"피의\n질주",n2:"박쥐떼",d:"피의 질주(돌진하며 범위 내 몹 타격 · 준 피해의 20% 흡혈) / 박쥐떼(ON/OFF · 가장 가까운 몬스터를 표적으로 삼아 범위 75px에 0.5초마다 10 피해 · [관리자 강화 +1 이상] 어그로 없는 적에게도 붙고 최대 5마리 · 사거리 300px) / 패시브 흡혈(준 피해의 10% 회복) / [관리자 강화 +1 이상] 피의 분노(스킬3 · ON/OFF · 주변 300px 모든 적에게 뱀파이어 표식 · 범위를 벗어난 뒤 10초 지나면 소멸 · 표식 적은 매초 최대 체력 5% 흡혈당하고 질병(내게 원래 피해의 5%만 줌))"},
  scythe:{n1:"횡베기",n2:"회전\n베기",d:"횡베기(전방 넓은 부채꼴) / 회전 베기(주변 360도)"},
  moon:{n1:"월광\n참격",n2:"월광\n도약",d:"월광 참격(직선 관통) / 월광 도약(빠른 돌진 · 긴 무적)"},
  enchant:{n1:"원소의\n폭주",n2:"자기파괴\n원소",d:"원소의 폭주(장착 에센스 수×30 반경 폭발 · 장착 에센스 효과 적용 · 쿨 0.5초) / 자기파괴적 원소(ON/OFF · 받는 피해 1%만 받고 원래 받을 피해(받은 피해의 100배) 반사) / 원소 과부하(ON/OFF · 공격력 1.5배 · 공속 증가 · 화상/빙결 2배 중첩 · 받는 피해 1.2배) / 분열의 원소(5번 · ON/OFF · 모든 에센스 효과 2번씩 발동)"},
@@ -2443,33 +2460,80 @@ const BAT_R=75,BAT_DMG=10,BAT_TICK=0.5,BAT_RANGE=250; /* 표적 탐색 거리 (�
 function toggleBats(){
  ensureAudio();sfx("skill");
  if(S.bats){S.bats=null;toast("박쥐떼 OFF");return}
- S.bats={tgt:null,tick:0};
+ S.bats={tgts:[],tick:0};
  toast("🦇 박쥐떼 ON · 가장 가까운 몬스터를 추적해요");
+}
+/* 피의 분노 (흡혈 낫 · 관리자 전용 강화 +1 이상에서 해금 · 스킬3 · 토글)
+   켜져 있는 동안 주변 300px 모든 적에게 뱀파이어 표식. 범위를 벗어난 뒤 10초가 지나면 표식 소멸.
+   표식이 있는 적: 매초 최대 체력의 5%를 흡혈당하고(내 HP로 회복) 질병에 걸려 나에게 원래 피해의 5%만 줌 */
+const BR_R=300,BR_KEEP=10,BR_DRAIN=0.05,BR_DIS=0.05; /* 표식 적: 매초 최대 체력의 5% 흡혈당함 · 질병: 나에게 원래 피해의 5%만 줌 */
+const canBR=()=>data.weapon==="vscythe"&&aenhLv("vscythe")>0;
+function toggleBloodRage(){
+ if(!S.running||data.hp<=0||S.chainSeq)return;
+ if(inSafe()){safeMsg();return}
+ if(!canBR()){toast("피의 분노는 흡혈 낫 관리자 강화 +1 이상에서 해금돼요.");return}
+ if(stunned())return;
+ ensureAudio();sfx("skill");
+ S.bloodRage=!S.bloodRage;
+ if(S.bloodRage){setRing({x:S.px,y:S.py,t:0,max:BR_R,col:"#c0283e"});burst(S.px,S.py,"#c0283e",16);S.shake=Math.max(S.shake,0.25);data.skillsUsed++;track("skill");save()}
+ toast(S.bloodRage?"🩸 피의 분노 ON · 주변 "+BR_R+"px 적에게 뱀파이어 표식 (매초 체력 5% 흡혈 · 질병: 내게 원래 피해의 5%만)":"피의 분노 OFF · 남은 표식은 10초 뒤 사라져요");
+}
+function updBloodRage(dt){
+ if(S.bloodRage&&(!canBR()||data.hp<=0||S.loc!=="field"))S.bloodRage=false;
+ if(S.loc!=="field")return;
+ for(const m of allTargets()){
+  if(!m.alive){m.vmark=false;m.vOut=0;continue}
+  if(S.bloodRage&&Math.hypot(m.x-S.px,m.y-S.py)<=BR_R){if(!m.vmark){burst(m.x,m.y,"#c0283e",6);m.vTick=0}m.vmark=true;m.vOut=0}
+  else if(m.vmark){m.vOut=(m.vOut||0)+dt;if(m.vOut>=BR_KEEP){m.vmark=false;m.vOut=0}}
+  if(m.vmark){ /* 1초마다 흡혈 */
+   m.vTick=(m.vTick||0)+dt;
+   if(m.vTick>=1){
+    m.vTick-=1;
+    const d=Math.max(1,Math.round(m.max*BR_DRAIN));
+    burst(m.x,m.y,"#c0283e",4);dotHit(m,d,"#ff4d5e");
+    if(data.hp>0&&data.hp<100){const hl=Math.min(d,100-data.hp);data.hp+=hl;addText(S.px,S.py-52,"🩸+"+Math.round(hl),"#ff4d5e")}
+   }
+  }
+ }
+}
+function drawBloodRageAt(x,y){
+ const pulse=0.5+0.5*Math.sin(S.time*3);
+ ctx.save();
+ const g=ctx.createRadialGradient(x,y,20,x,y,BR_R);g.addColorStop(0,"rgba(150,20,45,0)");g.addColorStop(1,"rgba(150,20,45,"+(0.10+0.05*pulse)+")");
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,BR_R,0,Math.PI*2);ctx.fill();
+ ctx.globalAlpha=0.55;ctx.strokeStyle="#c0283e";ctx.lineWidth=2;ctx.setLineDash([10,8]);ctx.lineDashOffset=-S.time*30;
+ ctx.beginPath();ctx.arc(x,y,BR_R,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+ ctx.restore();
 }
 function updBats(dt){
  const b=S.bats;if(!b)return;
  if(data.weapon!=="vscythe"||data.hp<=0||S.loc==="plaza"){S.bats=null;return}
- /* 표적: 나에게 어그로가 걸린 몬스터(보스 포함)만. 어그로가 풀리거나 너무 멀어지면 해제 */
- const okT=m=>m.alive&&(S.loc!=="field"||m.aggro||m.type==="boss");
- if(b.tgt&&(!okT(b.tgt)||Math.hypot(b.tgt.x-S.px,b.tgt.y-S.py)>BAT_RANGE*1.3))b.tgt=null;
- if(!b.tgt){
-  let bd=BAT_RANGE;
-  for(const m of allTargets()){if(!okT(m))continue;const d=Math.hypot(m.x-S.px,m.y-S.py);if(d<bd){bd=d;b.tgt=m}}
-  b.tick=0;
+ /* 관리자 강화(+1 이상): 어그로 없는 적에게도 붙고, 최대 5마리 · 사거리 300px. 아니면 어그로 걸린 적 1마리 · 250px */
+ const adm=aenhLv("vscythe")>0,max=adm?5:1,rng=adm?300:BAT_RANGE;
+ const okT=m=>m.alive&&(adm||S.loc!=="field"||m.aggro||m.type==="boss");
+ const nearSafe=m=>S.loc==="field"&&!safeOff()&&Math.hypot(m.x-SAFE.x,m.y-SAFE.y)<SAFE.r+BAT_R; /* 안전구역에 걸치는 표적은 제외 */
+ b.tgts=(b.tgts||[]).filter(m=>okT(m)&&Math.hypot(m.x-S.px,m.y-S.py)<=rng*1.3);
+ if(b.tgts.length>max)b.tgts.length=max;
+ if(b.tgts.length<max){
+  const cand=allTargets().filter(m=>okT(m)&&!b.tgts.includes(m)&&Math.hypot(m.x-S.px,m.y-S.py)<rng)
+   .sort((p,q)=>Math.hypot(p.x-S.px,p.y-S.py)-Math.hypot(q.x-S.px,q.y-S.py));
+  for(const m of cand){if(b.tgts.length>=max)break;b.tgts.push(m)}
  }
- if(!b.tgt||inSafe())return;
- /* 안전구역이 켜져 있을 땐 안전구역 가장자리에 걸치는 표적은 공격하지 않음 */
- if(S.loc==="field"&&!safeOff()&&Math.hypot(b.tgt.x-SAFE.x,b.tgt.y-SAFE.y)<SAFE.r+BAT_R)return;
+ if(!b.tgts.length){b.tick=0;return}
+ if(inSafe())return;
  b.tick+=dt;
  if(b.tick<BAT_TICK)return;
  b.tick-=BAT_TICK;
- const cx=b.tgt.x,cy=b.tgt.y;
- for(const m of allTargets()){
-  if(!m.alive||Math.hypot(m.x-cx,m.y-cy)>BAT_R)continue;
-  const kx=m.kx||0,ky=m.ky||0;hitMon(m,BAT_DMG,false);m.kx=kx;m.ky=ky; /* 넉백 없음 */
+ for(const t of b.tgts.slice()){
+  if(!t.alive||nearSafe(t))continue;
+  const cx=t.x,cy=t.y;
+  for(const m of allTargets()){
+   if(!m.alive||Math.hypot(m.x-cx,m.y-cy)>BAT_R)continue;
+   const kx=m.kx||0,ky=m.ky||0;hitMon(m,BAT_DMG,false);m.kx=kx;m.ky=ky; /* 넉백 없음 */
+  }
  }
 }
-function drawBats(){const b=S.bats;if(!b||!b.tgt||!b.tgt.alive)return;drawBatsAt(b.tgt.x,b.tgt.y)}
+function drawBats(){const b=S.bats;if(!b||!b.tgts)return;for(const t of b.tgts)if(t.alive)drawBatsAt(t.x,t.y)}
 function drawBatsAt(cx,cy){
  const t=S.time;
  ctx.save();
@@ -2703,7 +2767,7 @@ function bossAI(m,dt,dx,dy,d){
  a.cd-=dt;
  const sp=TYPES.boss.speed*(enr?1.35:1);
  m.x+=dx/d*sp*dt;m.y+=dy/d*sp*dt;
- if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
+ if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1)*(m.vmark?BR_DIS:1))),m.stat);
  if(a.cd<=0){a.cd=(enr?1.3:2.1)+Math.random()*0.8;bossCast(m,a,enr)}
 }
 function updTele(dt){
@@ -2713,7 +2777,7 @@ function updTele(dt){
   z.t+=dt;
   if(z.t>=z.dur){
    z.done=true;
-   if(!inSafe()&&Math.hypot(S.px-z.x,S.py-z.y)<z.r+PR*0.4)hurt(Math.max(1,Math.round(z.dmg)),z.stat);
+   if(!inSafe()&&Math.hypot(S.px-z.x,S.py-z.y)<z.r+PR*0.4)hurt(Math.max(1,Math.round(z.dmg*(S.boss&&S.boss.vmark?BR_DIS:1))),z.stat);
    burst(z.x,z.y,"#ff4d5e",16);S.shake=Math.max(S.shake,0.3);
   }
  }
@@ -2751,15 +2815,15 @@ function updateMon(m,dt){
   m.shootCd-=dt;
   if(m.shootCd<=0&&d<320){
    m.shootCd=2.2;
-   S.projs.push({x:m.x,y:m.y,vx:dx/d*190,vy:dy/d*190,t:3.5,dmg:Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),stat:m.stat,src:m});
+   S.projs.push({x:m.x,y:m.y,vx:dx/d*190,vy:dy/d*190,t:3.5,dmg:Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1)*(m.vmark?BR_DIS:1))),stat:m.stat,src:m});
   }
  }else if(m.type==="bat"&&m.aggro&&!inSafe()){
   const w=Math.sin(S.time*7+m.hx)*0.9,vx=dx/d,vy=dy/d;
   m.x+=(vx-vy*w)*T.speed*dt;m.y+=(vy+vx*w)*T.speed*dt;
-  if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
+  if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1)*(m.vmark?BR_DIS:1))),m.stat);
  }else if(m.aggro&&!inSafe()){
   m.x+=dx/d*T.speed*dt;m.y+=dy/d*T.speed*dt;
-  if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1))),m.stat);
+  if(d<m.r+PR+4)hurtFrom(m,Math.max(1,Math.round(m.dmg*(m.weakT>0?0.4:1)*(m.vmark?BR_DIS:1))),m.stat);
  }else{
   m.x+=(m.hx-m.x)*Math.min(1,dt*2);m.y+=(m.hy-m.y)*Math.min(1,dt*2);
  }
@@ -2802,6 +2866,7 @@ function update(dt){
  updPassives(dt);
  updSanct(dt);
  updBats(dt);
+ updBloodRage(dt);
  updPet(dt);
  updStatus(dt);
  updHpRegen(dt);
@@ -2914,6 +2979,8 @@ function drawMon(m){
   ctx.beginPath();ctx.ellipse(m.x,m.y+m.r*1.1,m.r*1.5,m.r*0.65,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
   ctx.fillStyle="#ffffff";ctx.font="12px system-ui";ctx.textAlign="center";ctx.fillText(sd.icon,m.x+bw/2+9,top+6);ctx.textAlign="left";
  }
+ if(m.vmark){const bl=(m.vOut||0)>0&&BR_KEEP-m.vOut<3&&Math.floor(S.time*8)%2===0;
+  if(!bl){ctx.globalAlpha=0.85;ctx.strokeStyle="#c0283e";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(m.x,m.y+m.r*1.1,m.r*1.9,m.r*0.8,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle="#ff4d5e";ctx.font="12px system-ui";ctx.textAlign="center";ctx.fillText("🩸🤢",m.x-bw/2-14,top+6);ctx.textAlign="left"}}
  if(m.type==="boss"){
   ctx.fillStyle="#ffffff";ctx.font="bold 12px system-ui";ctx.textAlign="center";
   ctx.fillText(m.ai&&m.ai.enr?"보스 · 분노":"보스",m.x,top-4);ctx.textAlign="left";
@@ -3052,6 +3119,7 @@ function draw(){
  }
  drawPulls();
  drawBats();
+ if(S.bloodRage)drawBloodRageAt(S.px,S.py);
  drawPassives();
  for(const sf of S.slashFx.concat(S.rslash)){
   const k=1-sf.t/(sf.max||0.35),cx=sf.x,cy=sf.y;
@@ -3114,8 +3182,8 @@ function hud(){
  set("sgSkill2",jo?(S.cd2>0?S.cd2.toFixed(1):S.chain?"충전\n"+Math.round(S.chain.t/1.5*100)+"%":"⛓\n사슬"):data.level<4?"🔒\nLv4":S.cd2>0?S.cd2.toFixed(1):skName(2));
  $("sgSkill1").disabled=(data.level<2&&!jo)||S.cd1>0;
  $("sgSkill2").disabled=(data.level<4&&!jo)||S.cd2>0;
- set("sgSkill3",jo?(S.cd3>0?S.cd3.toFixed(1):"중력의\n작용"):all6()?(S.cd3>0?S.cd3.toFixed(1):S.ch3?"융합중":"멸망적\n원소"):"🔒\n스킬3");
- $("sgSkill3").disabled=!(jo||all6())||(S.cd3>0&&!S.ch3);
+ set("sgSkill3",jo?(S.cd3>0?S.cd3.toFixed(1):"중력의\n작용"):canBR()?(S.bloodRage?"피의 분노\nON":"피의\n분노"):all6()?(S.cd3>0?S.cd3.toFixed(1):S.ch3?"융합중":"멸망적\n원소"):"🔒\n스킬3");
+ $("sgSkill3").disabled=!(jo||all6()||canBR())||(S.cd3>0&&!S.ch3);
  set("sgSkill4",jo?(S.sanct?"🗡\n회수":"🗡\n성역"):data.weapon==="enchant"?(S.overd?"과부하\nON":"원소\n과부하"):"🔒\n스킬4");
  $("sgSkill4").disabled=!(jo||data.weapon==="enchant");
  $("sgDash").disabled=S.rollCd>0;
@@ -3149,7 +3217,7 @@ function renderView(){
    if(invSel){
     const [k,is]=invSel.split("_"),i=Number(is),w=weapons[k],lv=w.adminOnly?0:(copiesOf(k)[i]||0),col=RARITY_COLOR[w.rarity]||"#929bb0";
     const atk=k==="judge"?"공격력 몬스터 HP의 1000%":"공격력 "+(lv?atkAt(k,lv)+" (기본 "+atkAt(k,0)+" + 강화 "+lv+"단계)":atkAt(k,0));
-    const lines=[atk,SWORD_SK[k]?"스킬: "+SWORD_SK[k].d:"",k==="judge"?"패시브: 빛의 결계(받는 피해 90% 감소 · 상태 이상 면역)":k==="enchant"?"인챈트: "+(Object.keys(ESSENCES).filter(ES).map(k=>ESSENCES[k].name).join(" + ")||"에센스 미장착"):"",k==="judge"&&!isAdmin&&data.loans&&data.loans.judge?new Date(data.loans.judge).toLocaleString("ko-KR")+"까지 하사":"",i>0?"여분 검 · 강화 탭에서 강화 수치가 같은 검끼리 합쳐 강화해요.":""].filter(Boolean);
+    const lines=[atk,aenhLv(k)?"👑 관리자 강화 +"+aenhLv(k)+" (공격력 +"+aenhLv(k)*AENH_PCT+"%)":"",SWORD_SK[k]?"스킬: "+SWORD_SK[k].d:"",k==="judge"?"패시브: 빛의 결계(받는 피해 90% 감소 · 상태 이상 면역)":k==="enchant"?"인챈트: "+(Object.keys(ESSENCES).filter(ES).map(k=>ESSENCES[k].name).join(" + ")||"에센스 미장착"):"",k==="judge"&&!isAdmin&&data.loans&&data.loans.judge?new Date(data.loans.judge).toLocaleString("ko-KR")+"까지 하사":"",i>0?"여분 검 · 강화 탭에서 강화 수치가 같은 검끼리 합쳐 강화해요.":""].filter(Boolean);
     detail=`<div class="sg-detail" style="border-color:${col}"><div><b>${esc(w.name)}${lv?` (강화 ${lv})`:""}</b> <span class="role-badge" style="color:${col}">${esc(w.rarity)}</span></div><div class="sg-note">${lines.map(esc).join("<br>")}</div><div style="display:flex;gap:8px">${i===0?`<button data-action="equip:${k}" ${data.weapon===k?"disabled":""}>${data.weapon===k?"장착 중":"장착"}</button>`:""}<button data-action="inv:">닫기</button></div></div>`;
    }
    return detail+`<div class="sg-inv">${tiles.map(tile).join("")}</div>`;
@@ -3317,6 +3385,16 @@ function action(a){
   }
   else toast("강화 수치가 같은(+"+lv+") 검이 2자루 필요해요.");
  }
+ else if(type==="aenhup"||type==="aenhdn"){
+  if(!isAdmin)toast("관리자 전용 강화예요.");
+  else if(!weapons[k]||weapons[k].adminOnly||!data.owned.includes(k))toast("보유한 검만 강화할 수 있어요.");
+  else{
+   if(!data.aenh||typeof data.aenh!=="object")data.aenh={};
+   const cur=aenhLv(k),nx=type==="aenhup"?Math.min(AENH_MAX,cur+1):Math.max(0,cur-1);
+   if(nx===cur)toast(nx>=AENH_MAX?"이미 최대 관리자 강화예요.":"더 내릴 수 없어요.");
+   else{if(nx>0)data.aenh[k]=nx;else delete data.aenh[k];toast("👑 "+weapons[k].name+" 관리자 강화 +"+nx+" (공격력 "+atkOf(k)+")")}
+  }
+ }
  else if(type==="buy"&&k==="potion"){
   if(data.gold>=30){data.gold-=30;data.potions=(data.potions||0)+1;toast("회복 물약을 구매했어요.")}else toast("골드가 부족해요.");
  }
@@ -3411,7 +3489,7 @@ async function submitScore(){
 const CDR=[
  ["sgSkill1",()=>S.cd1,()=>!judgeOn()&&data.level<2],
  ["sgSkill2",()=>S.cd2,()=>!judgeOn()&&data.level<4],
- ["sgSkill3",()=>S.cd3,()=>!judgeOn()&&!all6()],
+ ["sgSkill3",()=>S.cd3,()=>!judgeOn()&&!all6()&&!canBR()],
  ["sgSkill4",()=>0,()=>!judgeOn()&&data.weapon!=="enchant"],
  ["sgSkill5",()=>0,()=>data.weapon!=="enchant"],
  ["sgDash",()=>S.rollCd,()=>false]
@@ -3533,7 +3611,7 @@ async function netConnect(){
   if(!net||!payload||payload.id===net.id)return;
   let o=net.others.get(payload.id);
   if(!o){o={x:payload.x,y:payload.y};net.others.set(payload.id,o)}
-  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,adm:!!payload.adm,loc:payload.loc||"field",stage:Number(payload.stage)||1,sh:Number(payload.sh)||0,rt:Number(payload.rt)||1000,iv:!!payload.iv,w:weapons[payload.w]?payload.w:"wood",sn:(Array.isArray(payload.sn)&&payload.sn.every(Number.isFinite))?payload.sn:null,bt:(Array.isArray(payload.bt)&&payload.bt.every(Number.isFinite))?payload.bt:null,seen:performance.now()});
+  Object.assign(o,{tx:payload.x,ty:payload.y,face:payload.face,run:payload.run,nick:payload.nick,hp:payload.hp,lvl:payload.lvl,team:payload.team,adm:!!payload.adm,loc:payload.loc||"field",stage:Number(payload.stage)||1,sh:Number(payload.sh)||0,rt:Number(payload.rt)||1000,iv:!!payload.iv,br:!!payload.br,w:weapons[payload.w]?payload.w:"wood",sn:(Array.isArray(payload.sn)&&payload.sn.every(Number.isFinite))?payload.sn:null,bt:(Array.isArray(payload.bt)&&payload.bt.length<=10&&payload.bt.every(Number.isFinite))?payload.bt:null,seen:performance.now()});
  });
  ch.on("broadcast",{event:"swing"},({payload})=>{
   if(!net||!payload)return;
@@ -3616,7 +3694,8 @@ function drawRemoteDecor(o){
   ctx.save();ctx.translate(px,py);ctx.scale(0.55,0.55);drawSprite(SPR.bat,Math.floor(t*10)%2,false,0,0,o.x<px?1:-1,true);ctx.restore();
  }
  if(o.sn)drawSanctZ({x:o.sn[0],y:o.sn[1],t:5,far:0,rot:[S.time*1.1,-S.time*0.8,S.time*0.55]});
- if(o.bt)drawBatsAt(o.bt[0],o.bt[1]);
+ if(o.bt)for(let q=0;q+1<o.bt.length;q+=2)drawBatsAt(o.bt[q],o.bt[q+1]);
+ if(o.br&&w==="vscythe")drawBloodRageAt(o.x,o.y);
 }
 function netLeave(){if(net){try{net.ch.unsubscribe()}catch{}net=null}}
 let prevDashing=false;
@@ -3626,7 +3705,7 @@ function netTick(dt){
   if(da&&!prevDashing){netQueueFx("dash",{dur:(S.roll&&S.roll.t)||(S.dash&&S.dash.t)||(S.chainSeq?S.chainSeq.dashT+SEQ_RET:0.2)});netFlushFx()}
   prevDashing=da}
  S.netT+=dt;if(S.netT<0.1)return;S.netT=0;
- net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),sh:Math.round(PV.shield),lvl:data.level,team:net.team,adm:judgeOn(),loc:S.loc,stage:data.stage,rt:pvpData.rating,iv:S.invuln>0,w:data.weapon,sn:S.sanct?[Math.round(S.sanct.x),Math.round(S.sanct.y)]:null,bt:(S.bats&&S.bats.tgt&&S.bats.tgt.alive)?[Math.round(S.bats.tgt.x),Math.round(S.bats.tgt.y)]:null}});
+ net.ch.send({type:"broadcast",event:"pos",payload:{id:net.id,nick:net.nick,x:Math.round(S.px),y:Math.round(S.py),face:S.face,run:Math.abs(S.vx)+Math.abs(S.vy)>30||!!S.roll,hp:Math.round(data.hp),sh:Math.round(PV.shield),lvl:data.level,team:net.team,adm:judgeOn(),loc:S.loc,stage:data.stage,rt:pvpData.rating,iv:S.invuln>0,w:data.weapon,sn:S.sanct?[Math.round(S.sanct.x),Math.round(S.sanct.y)]:null,br:S.bloodRage?1:0,bt:(S.bats&&S.bats.tgts&&S.bats.tgts.length)?S.bats.tgts.filter(t=>t.alive).slice(0,5).flatMap(t=>[Math.round(t.x),Math.round(t.y)]):null}});
  netFlushFx();
 }
 function updateRemotes(dt){
